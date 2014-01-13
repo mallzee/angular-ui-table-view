@@ -104,7 +104,7 @@ function UITableView(scope, element, attr, $timeout) {
 
   tv.initialise = function () {
     tv.buffer.visible = Math.ceil(tv.container.height / tv.row.height) + 1;
-    console.log('Visible', tv.buffer.visible, tv.container.height, tv.row.height);
+    //console.log('Visible', tv.buffer.visible, tv.container.height, tv.row.height);
     render();
   };
 
@@ -132,30 +132,18 @@ function UITableView(scope, element, attr, $timeout) {
     element.animate({scrollTop: 0}, 'slow');
   };
 
-  /*tv.registerItem = function (item) {
-    var bufferedItemIndex = _.findIndex(tv.buffer.items, { id: item.$$position });
-    console.log('Updating item dimensions', item.$$position, tv.scroll.index);
-    if (bufferedItemIndex >= 0) {
-      tv.scroll.height += item.height;
-      tv.scroll.width = 0;
-      angular.extend(tv.buffer.items[bufferedItemIndex], item);
-      console.log('Added dimensions to object', tv.buffer.items[bufferedItemIndex]);
-    }
-    bufferedItems = wrapper.children();
-    return bufferedItemIndex;
-  };*/
-
   // Add the metadata required by ng-repeats track by to stop DOM creation/deletion
-  tv.updatePositions = function() {
+  tv.updatePositions = function(items) {
     //console.log('Updating positions');
     // Recalculate the virtual wrapper height
+    tv.allItems = items;
     tv.wrapper.height = tv.allItems.length * tv.row.height;
     wrapper.css('height', tv.wrapper.height + 'px');
 
     // Make a copy of the original items so we're not overwriting the master list
     angular.copy(tv.allItems.slice(tv.window.startIndex, tv.window.endIndex + 1), tv.buffer.items);
 
-    console.log('Wrapper height', tv.wrapper.height, tv.items.length, tv.window.startIndex, tv.window.endIndex, tv.window.startPx, tv.window.endPx, tv.buffer.visible);
+    //console.log('Wrapper height', tv.wrapper.height, tv.items.length, tv.window.startIndex, tv.window.endIndex, tv.window.startPx, tv.window.endPx, tv.buffer.visible);
 
     var position = tv.buffer.pointer;
     for (var i = 0; i < tv.buffer.items.length; i++) {
@@ -312,107 +300,11 @@ angular.module('mallzee.ui-table-view', [])
     return {
       restrict: 'A',
       transclude: false,
+      scope: true,
       link: function (scope, element, attributes) {
 
         scope.tableView = new UITableView(scope, element, attributes, $timeout);
         scope.tableView.initialise();
-
-
-        var moveWindowDown = function () {
-console.log('Moving down', indexDelta, scope.windowEnd, scope.totalItems);
-          if (indexDelta > 0 && scope.windowEnd < scope.totalItems - 1) {
-            console.log('Moving window down', indexDelta, startPosition, endPosition, scope.windowStart,
-              scope.windowEnd);
-
-            // Grab the items from the main list we need to merge with the end of the tableViewItems.
-            var newItems = scope.items.slice(scope.windowEnd + 1, scope.windowEnd + 1 + indexDelta);
-
-            for (var i = 0; i < indexDelta; i++) {
-
-              // TODO Get a better solution than this
-              if (newItems[i] === undefined) {
-                console.log('Over reached with the index delta', newItems.length, indexDelta);
-                continue;
-              }
-              console.log('Calculating element', startPosition, startPositionPx, endPosition, endPositionPx,
-                scope.items.length);
-
-              // Copy merge new item into place
-              newItems[i].top = endPositionPx;
-              angular.extend(scope.tableViewItems[startPosition], newItems[i]);
-
-              // Grab the element to update
-              var el = angular.element(element.children().children()[startPosition]);
-
-              // Move it into position
-              el.css('-webkit-transform', 'translateY(' + endPositionPx + 'px)');
-
-              // Update the window positions
-              startPositionPx += scope.rowHeight;
-              endPositionPx += scope.rowHeight;
-
-              startPosition++;
-              if (startPosition >= scope.tableViewItemsVisible) {
-                startPosition = 0;
-              }
-            }
-
-            // Update the window
-            scope.windowStart = (scope.windowStart + indexDelta < scope.items.length - scope.itemsInView - 1) ? scope.windowStart + indexDelta : scope.items.length - scope.itemsInView - 1;
-            scope.windowEnd = (scope.windowEnd + indexDelta < scope.items.length - 1) ? scope.windowEnd + indexDelta : scope.items.length - 1;
-
-          }
-
-          // Update the DOM elements in view so long as we've detected a change
-          // This handles the edges.
-          if (indexDelta > 0) {
-            isDomInView();
-          }
-        };
-
-        var moveWindowUp = function () {
-          if (indexDelta > 0 && scope.windowStart > 0 && scope.itemScrollIndex < (scope.totalItems - scope.itemsInView)) {
-            console.log('Moving window up', scope.itemScrollIndex, indexDelta, startPosition, endPosition,
-              scope.windowStart - indexDelta, scope.windowEnd, scope.totalItems - scope.itemsInView);
-
-            // Grab the items from the main list we need to merge with the start of the tableViewItems.
-            var newItems = scope.items.slice(scope.windowStart - indexDelta, scope.windowStart);
-            for (var i = indexDelta - 1; i >= 0; i--) {
-
-              // TODO Get a better fix to this issue.
-              if (newItems[i] === undefined) {
-                console.log('Over reached with the index delta', newItems.length, indexDelta);
-                continue;
-              }
-              startPosition--;
-              if (startPosition < 0) {
-                startPosition = scope.tableViewItemsVisible - 1;
-              }
-              console.log('Calculating element', startPosition, startPositionPx, endPosition, endPositionPx);
-
-              startPositionPx -= scope.rowHeight;
-              endPositionPx -= scope.rowHeight;
-
-              var el = angular.element(element.children().children()[startPosition]);
-
-              newItems[i].top = startPositionPx;
-              angular.extend(scope.tableViewItems[startPosition], newItems[i]);
-
-              el.css('-webkit-transform', 'translateY(' + startPositionPx + 'px)');
-            }
-
-            // Update the window
-            scope.windowStart = (scope.windowStart - indexDelta < 0) ? scope.windowStart - indexDelta : 0;
-            scope.windowEnd = (scope.windowEnd - indexDelta < scope.itemsInView - 1) ? scope.windowEnd - indexDelta : scope.itemsInView - 1;
-
-          }
-
-          // Update the DOM elements in view so long as we've detected a change
-          // This handles the edges.
-          if (indexDelta > 0) {
-            isDomInView();
-          }
-        };
 
         // Workout if our saved DOM elements are actually shown
         function isDomInView () {
@@ -423,12 +315,6 @@ console.log('Moving down', indexDelta, scope.windowEnd, scope.totalItems);
           if (scope.tableViewItems.length === 0) {
             return false;
           }
-
-          /*console.log('Table View Item Watching scroll index',
-            scope.itemScrollIndex,
-            scope.itemsInView,
-            scope.tableViewItems.length
-          );*/
 
           // Hide all the elements for now
           for (i = 0; i < scope.tableViewItems.length; i++) {
@@ -442,11 +328,9 @@ console.log('Moving down', indexDelta, scope.windowEnd, scope.totalItems);
           }
         }
 
-        //isDomInView();
-
         // The master list of items has changed. Recalculate the virtual list
-        scope.$watchCollection('items', function (items) {
-          scope.tableView.updatePositions();
+        scope.$watchCollection('tableView.allItems', function (items) {
+          scope.tableView.updatePositions(items);
         });
 
         // The status bar has been tapped. To the top with ye!
