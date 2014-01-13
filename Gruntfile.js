@@ -12,10 +12,17 @@
 
 module.exports = function(grunt) {
 
+  // configurable paths
+  var yeomanConfig = {
+    base: '.'
+  };
+
 	/**
 	Load grunt plugins
 	@toc 2.
 	*/
+  grunt.loadNpmTasks('grunt-contrib-connect');
+  grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-contrib-concat');
 	grunt.loadNpmTasks('grunt-contrib-less');
 	grunt.loadNpmTasks('grunt-contrib-uglify');
@@ -34,6 +41,35 @@ module.exports = function(grunt) {
 		@toc 5.
 		*/
 		grunt.initConfig({
+      watch: {
+        html: {
+          files: ['pages/**', 'index.html'],
+          options: {
+            livereload: true
+          }
+        },
+        less: {
+          files: ['*.less'],
+          tasks: ['less:development'],
+          options: {
+            livereload: true
+          }
+        },
+        karma: {
+          files: ['src/ui-table-view.js', 'test/ui-table-view.js'],
+          tasks: ['karma:unit:run']
+        }
+      },
+      connect: {
+        server: {
+          options: {
+            port: 9001,
+            base: yeomanConfig.base,
+            // Change this to '0.0.0.0' to access the server from outside.
+            hostname: '0.0.0.0'
+          }
+        }
+      },
 			concat: {
 				devCss: {
 					src:    [],
@@ -55,7 +91,8 @@ module.exports = function(grunt) {
 						moment:		false,
 						Pikaday: false,
 						module: false,
-						forge: false
+						forge: false,
+            _: false
 					}
 				},
 				beforeconcat:   {
@@ -84,7 +121,7 @@ module.exports = function(grunt) {
 				},
 				build: {
 					files:  {},
-					src:    'ui-table-view.js',
+					src:    'src/ui-table-view.js',
 					dest:   'ui-table-view.min.js'
 				}
 			},
@@ -96,14 +133,18 @@ module.exports = function(grunt) {
 						"main.css": "_base.less"
 					}
 				}
-			}/*,
+			},
 			karma: {
 				unit: {
-					configFile: publicPathRelativeRoot+'config/karma.conf.js',
-					singleRun: true,
-					browsers: ['PhantomJS']
-				}
-			}*/
+					configFile: 'karma.conf.js',
+          background: true
+        },
+        continuous: {
+          configFile: 'karma.conf.js',
+          singleRun: true,
+          browsers: ['PhantomJS']
+        }
+			}
 		});
 		
 		
@@ -114,8 +155,16 @@ module.exports = function(grunt) {
 		// Default task(s).
 		// grunt.registerTask('default', ['jshint:beforeconcat', 'less:development', 'concat:devJs', 'concat:devCss']);
 		grunt.registerTask('default', ['jshint:beforeconcatQ', 'less:development', 'uglify:build']);
-	
-	}
+
+    grunt.registerTask('server', [
+      'default',
+      'karma:unit:start',
+      'connect:server:livereload',
+      'watch'
+    ]);
+
+
+  }
 	init({});		//initialize here for defaults (init may be called again later within a task)
 
 };

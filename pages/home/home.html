@@ -1,3 +1,12 @@
-<div ng-controller='HomeCtrl'>	
-	<!-- TODO: place directive call here -->
+<div ng-controller='HomeCtrl'>
+    <h1>UI Table View Demo</h1>
+    <h2>Items length: {{items.length}}</h2>
+    <div mlz-ui-table-view="items" mlz-ui-table-view-row-height="100" mlz-ui-table-view-buffer="20">
+        <div class="mlz-ui-table-view-wrapper">
+            <div ng-repeat="item in tableView.buffer.items track by item.$$position" mlz-ui-table-view-item>
+                <dt ng-bind="item.name"></dt>
+                <dd ng-bind="item.details"></dd>
+            </div>
+        </div>
+    </div>
 </div>

@@ -1,0 +1,18 @@
+{
+  "name": "angular-route",
+  "version": "1.2.8-build.2087+sha.affcbad",
+  "main": "./angular-route.js",
+  "dependencies": {
+    "angular": "1.2.8-build.2087+sha.affcbad"
+  },
+  "homepage": "https://github.com/angular/bower-angular-route",
+  "_release": "1.2.8-build.2087+sha.affcbad",
+  "_resolution": {
+    "type": "version",
+    "tag": "v1.2.8-build.2087+sha.affcbad",
+    "commit": "b6befc44630e436eef04f9fb7545c077cb3bf834"
+  },
+  "_source": "git://github.com/angular/bower-angular-route.git",
+  "_target": "~1.2.0",
+  "_originalSource": "angular-route"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "angular",
+  "version": "1.2.8-build.2087+sha.affcbad",
+  "main": "./angular.js",
+  "dependencies": {},
+  "homepage": "https://github.com/angular/bower-angular",
+  "_release": "1.2.8-build.2087+sha.affcbad",
+  "_resolution": {
+    "type": "version",
+    "tag": "v1.2.8-build.2087+sha.affcbad",
+    "commit": "68b09bbf2b439a567d80798c4f74e715d2a5833f"
+  },
+  "_source": "git://github.com/angular/bower-angular.git",
+  "_target": "~1.2.0",
+  "_originalSource": "angular"
+}
