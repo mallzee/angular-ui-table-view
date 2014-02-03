@@ -1068,12 +1068,6 @@ describe('UITableView', function () {
 
     });
 
-    xdescribe('scroll to top', function () {
-      it('should have the start position set as 0', function () {
-
-      });
-    });
-
   });
 
   xdescribe('changing items', function () {

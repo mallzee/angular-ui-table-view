@@ -5,10 +5,10 @@
 
 ### An AngularJS Directive to mimic iOS UITableView to give a fast unlimited length list if items on mobile using ng-repeat
 
-Scrolling on mobile is a pain. Infinite scrolling and large lists are a massive pain! Which is why there's is no perfect solution out there, especially in the Angular world. So we developed our own. The core value of the project is to be as simple to utilise as possible while turning long lists of data into seamless, jank free, scrolling lists on mobile. Which in turn means they run shit hot on the desktop.
+Scrolling on mobile is a pain. Infinite scrolling and large lists are a massive pain! Which is why there is no perfect solution out there, especially in the Angular world. So we developed our own. The core value of the project is to be as simple to utilise as possible while turning long lists of data into seamless, jank free, scrolling lists on mobile. Which in turn means they run shit hot on the desktop.
 
 ## Demo
-http://mallzee.github.io/angular-ui-table-view/
+http://angular-ui-table-view.mallzee.com
 
 ## How do we get this beast running?
 
@@ -45,15 +45,3 @@ This then generates a small list of items (the size of the buffer set) that it w
 The mlz-ui-table-view directive watches over your big list of items. It creates a subset of the items based on the window parameters currently give. These parameters are updated when the scroll position of wrapper changes.
 
 DOM elements are limited to the buffer size and are never destroyed or created after initialisation. This is what makes the list highly performant. They are moved into the correct place in the list ,using 3d transforms, based on the item index and scroll position and are injected with the correct information from the larger array.
-
-
-## TODOs
-
-Here's a list of things we'd like to improve on the project so that it's even simpler to use. Feel free to add any thing here.
-
- [ ] - Remove the need for the wrapper div. Use transclution or something like that.
- [ ] - Remove the row height specification at the container level (mlz-ui-table-view-row-height)
- [ ] - Calculate an optimal buffer size based on the data given (mlz-ui-table-view-buffer)
- [ ] - Write some custom ng-repeat to remove the need for the track by item.$$position 
-
-

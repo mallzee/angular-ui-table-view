@@ -300,7 +300,10 @@ function UITableView (scope, element, attr, $timeout, $log) {
    * Calculates if a render is required.
    */
   function isRenderRequired () {
-    console.log('Render required?', tv.scroll.direction, tv.scroll.directionChange, tv.view.deadZone, tv.view.deadZoneChange, tv.buffer.atEdge, tv.view.ytChange, tv.view.ybChange);
+    $log.debug('Render required?', tv.scroll.direction, tv.scroll.directionChange,
+      tv.view.deadZone, tv.view.deadZoneChange, tv.buffer.atEdge, tv.view.ytChange,
+      tv.view.ybChange);
+
     return(
       ((tv.scroll.direction === SCROLL_UP && tv.buffer.atEdge !== EDGE_TOP && tv.view.deadZone === false) && (tv.scroll.directionChange || tv.view.ytChange)) ||
       ((tv.scroll.direction === SCROLL_DOWN && tv.buffer.atEdge !== EDGE_BOTTOM && tv.view.deadZone === false) && (tv.scroll.directionChange || tv.view.ybChange)) ||
@@ -319,7 +322,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
 
     // Update indexes
     tv.scroll.yIndex = Math.floor(y / tv.row.height);
-    console.log('Updating scroll model', y, tv.scroll.yIndex);
+
     if (tv.scroll.yIndex < 0) {
       tv.scroll.yIndex = 0;
     }
@@ -334,7 +337,6 @@ function UITableView (scope, element, attr, $timeout, $log) {
     // tv.scroll.bottomIndex = Math.abs(Math.floor((tv.container.height + y) / tv.row.height));
 
     // Update direction
-    console.log('Updating scroll model', y, tv._scroll.y, tv.scroll.yIndex, tv.scroll.yDelta);
     tv.scroll.direction = (tv.scroll.yDelta >= 0) ? SCROLL_DOWN : SCROLL_UP;
     tv.scroll.directionChange = (tv.scroll.direction !== tv._scroll.direction);
 
@@ -571,7 +573,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
   tv.setElementPosition = function (index, y) {
     var el = angular.element(tv.buffer.elements[index]);
     if (el) {
-      // Move it into position
+      // Move it into position. Hide the element first to stop any janky behaviour with items being moved
       el.css('display', 'none');
       el.css('-webkit-transform', 'translateY(' + y + 'px)');
       el.css('display', 'block');

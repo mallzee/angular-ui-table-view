@@ -319,7 +319,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
 
     // Update indexes
     tv.scroll.yIndex = Math.floor(y / tv.row.height);
-    console.log('Updating scroll model', y, tv.scroll.yIndex);
+
     if (tv.scroll.yIndex < 0) {
       tv.scroll.yIndex = 0;
     }
@@ -334,7 +334,6 @@ function UITableView (scope, element, attr, $timeout, $log) {
     // tv.scroll.bottomIndex = Math.abs(Math.floor((tv.container.height + y) / tv.row.height));
 
     // Update direction
-    console.log('Updating scroll model', y, tv._scroll.y, tv.scroll.yIndex, tv.scroll.yDelta);
     tv.scroll.direction = (tv.scroll.yDelta >= 0) ? SCROLL_DOWN : SCROLL_UP;
     tv.scroll.directionChange = (tv.scroll.direction !== tv._scroll.direction);
 
