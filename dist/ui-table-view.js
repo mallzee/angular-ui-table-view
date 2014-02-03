@@ -300,9 +300,10 @@ function UITableView (scope, element, attr, $timeout, $log) {
    * Calculates if a render is required.
    */
   function isRenderRequired () {
+    console.log('Render required?', tv.scroll.direction, tv.scroll.directionChange, tv.view.deadZone, tv.view.deadZoneChange, tv.buffer.atEdge, tv.view.ytChange, tv.view.ybChange);
     return(
-      ((tv.scroll.direction === SCROLL_UP && tv.buffer.atEdge !== EDGE_TOP) && (tv.scroll.directionChange || tv.view.ytChange)) ||
-      ((tv.scroll.direction === SCROLL_DOWN && tv.buffer.atEdge !== EDGE_BOTTOM) && (tv.scroll.directionChange || tv.view.ybChange)) ||
+      ((tv.scroll.direction === SCROLL_UP && tv.buffer.atEdge !== EDGE_TOP && tv.view.deadZone === false) && (tv.scroll.directionChange || tv.view.ytChange)) ||
+      ((tv.scroll.direction === SCROLL_DOWN && tv.buffer.atEdge !== EDGE_BOTTOM && tv.view.deadZone === false) && (tv.scroll.directionChange || tv.view.ybChange)) ||
       !(tv.view.deadZone !== false && tv.view.deadZoneChange === false)
     );
   }
@@ -317,14 +318,23 @@ function UITableView (scope, element, attr, $timeout, $log) {
     tv.scroll.yDelta = y - tv._scroll.y;
 
     // Update indexes
-    tv.scroll.yIndex = Math.abs(Math.floor(y / tv.row.height));
+    tv.scroll.yIndex = Math.floor(y / tv.row.height);
+    console.log('Updating scroll model', y, tv.scroll.yIndex);
+    if (tv.scroll.yIndex < 0) {
+      tv.scroll.yIndex = 0;
+    }
+
+    if (tv.scroll.yIndex >= tv.items.length) {
+      tv.scroll.yIndex = tv.items.length - 1;
+    }
+
     tv.scroll.yDistance = Math.abs(tv.scroll.yIndex - tv._scroll.yIndex);
     tv.scroll.yChange = (tv.scroll.yDistance > 0);
 
     // tv.scroll.bottomIndex = Math.abs(Math.floor((tv.container.height + y) / tv.row.height));
 
     // Update direction
-    //$log.debug('Updating scroll model', y, tv._scroll.y, tv.scroll.yDelta);
+    console.log('Updating scroll model', y, tv._scroll.y, tv.scroll.yIndex, tv.scroll.yDelta);
     tv.scroll.direction = (tv.scroll.yDelta >= 0) ? SCROLL_DOWN : SCROLL_UP;
     tv.scroll.directionChange = (tv.scroll.direction !== tv._scroll.direction);
 
@@ -341,7 +351,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
     tv.view.yTop = tv.scroll.y;
     tv.view.yBottom = tv.scroll.y + tv.container.height;
     tv.view.top = tv.scroll.yIndex;
-    tv.view.bottom = Math.abs(Math.floor(tv.view.yBottom / tv.row.height));
+    tv.view.bottom = Math.floor(tv.view.yBottom / tv.row.height);
     tv.view.atEdge = !(tv.view.top > 0 && tv.view.bottom < tv.items.length - 1);
 
     tv.view.deadZone = (tv.view.yTop < tv.row.height) ? EDGE_TOP : tv.view.yBottom > ((tv.items.length - 1) * tv.row.height) ? EDGE_BOTTOM : false;

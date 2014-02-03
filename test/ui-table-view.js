@@ -1001,6 +1001,73 @@ describe('UITableView', function () {
 
     });
 
+    describe('overscroll up down', function () {
+      beforeEach(function () {
+        tv.setScrollYPosition(-90);
+        tv.setScrollYPosition(-50);
+      });
+
+      it('should update the scroll model', function () {
+        expect(tv.scroll.y, 'y').to.equal(-50);
+        expect(tv.scroll.yIndex, 'yIndex').to.equal(0);
+        expect(tv.scroll.yDistance, 'yDistance').to.equal(0);
+        expect(tv.scroll.direction, 'direction').to.equal('down');
+        expect(tv.scroll.directionChange, 'directionChange').to.be.true;
+        expect(element[0].scrollTop, 'scroll top').to.equal(0);
+      });
+
+      it('should update the view model', function () {
+        expect(tv.view.atEdge, 'atEdge').to.be.true;
+        expect(tv.view.top, 'top').to.equal(0);
+        expect(tv.view.bottom, 'bottom').to.equal(4);
+        expect(tv.view.yTop, 'yTop').to.equal(-50);
+        expect(tv.view.yBottom, 'yBottom').to.equal(430);
+        expect(tv.view.deadZone, 'deadZone').to.equal('top');
+        expect(tv.view.deadZoneChange, 'deadZoneChange').to.be.false;
+      });
+
+      it('should update the buffer model', function () {
+        expect(tv.buffer.atEdge, 'atEdge').to.equal('top');
+        expect(tv.buffer.top, 'top').to.equal(0);
+        expect(tv.buffer.bottom, 'bottom').to.equal(9);
+        expect(tv.buffer.yTop, 'yTop').to.equal(0);
+        expect(tv.buffer.yBottom, 'yBottom').to.equal(1000);
+        expect(tv.buffer.reset, 'reset').to.be.false;
+      });
+
+      it('should have updated buffered items', function () {
+        expect(tv.buffer.items[0].id).to.equal(0);
+        expect(tv.buffer.items[0].$$top).to.equal(0);
+        expect(tv.buffer.items[1].id).to.equal(1);
+        expect(tv.buffer.items[1].$$top).to.equal(100);
+        expect(tv.buffer.items[2].id).to.equal(2);
+        expect(tv.buffer.items[2].$$top).to.equal(200);
+        expect(tv.buffer.items[3].id).to.equal(3);
+        expect(tv.buffer.items[3].$$top).to.equal(300);
+        expect(tv.buffer.items[4].id).to.equal(4);
+        expect(tv.buffer.items[4].$$top).to.equal(400);
+        expect(tv.buffer.items[5].id).to.equal(5);
+        expect(tv.buffer.items[5].$$top).to.equal(500);
+        expect(tv.buffer.items[6].id).to.equal(6);
+        expect(tv.buffer.items[6].$$top).to.equal(600);
+        expect(tv.buffer.items[7].id).to.equal(7);
+        expect(tv.buffer.items[7].$$top).to.equal(700);
+        expect(tv.buffer.items[8].id).to.equal(8);
+        expect(tv.buffer.items[8].$$top).to.equal(800);
+        expect(tv.buffer.items[9].id).to.equal(9);
+        expect(tv.buffer.items[9].$$top).to.equal(900);
+
+      });
+
+      it('should update the transformed Y coordinates of the item leaving the view window', function () {
+        var item0 = angular.element(tv.buffer.elements[0]);
+        expect(item0.css('-webkit-transform')).to.equal('translateY(0px)');
+        var item1 = angular.element(tv.buffer.elements[1]);
+        expect(item1.css('-webkit-transform')).to.equal('translateY(100px)');
+      });
+
+    });
+
     xdescribe('scroll to top', function () {
       it('should have the start position set as 0', function () {
 
