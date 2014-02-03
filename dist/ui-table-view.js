@@ -473,7 +473,9 @@ function UITableView (scope, element, attr, $timeout, $log) {
     updateBufferModel();
 
     // Update the DOM based on the models
-    render();
+    if (isRenderRequired()) {
+      render();
+    }
 
     // Prep for the next pass
     setupNextTick();
@@ -560,7 +562,9 @@ function UITableView (scope, element, attr, $timeout, $log) {
     var el = angular.element(tv.buffer.elements[index]);
     if (el) {
       // Move it into position
+      el.css('display', 'none');
       el.css('-webkit-transform', 'translateY(' + y + 'px)');
+      el.css('display', 'block');
       return true;
     }
     return false;

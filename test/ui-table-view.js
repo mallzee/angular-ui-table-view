@@ -108,7 +108,7 @@ describe('UITableView', function () {
     document.find('body').empty();
   }
 
-  describe.only('initialisation with array', function () {
+  describe('initialisation with array', function () {
 
     beforeEach(function () {
       initialiseWithArray();
