@@ -300,7 +300,10 @@ function UITableView (scope, element, attr, $timeout, $log) {
    * Calculates if a render is required.
    */
   function isRenderRequired () {
-    console.log('Render required?', tv.scroll.direction, tv.scroll.directionChange, tv.view.deadZone, tv.view.deadZoneChange, tv.buffer.atEdge, tv.view.ytChange, tv.view.ybChange);
+    $log.debug('Render required?', tv.scroll.direction, tv.scroll.directionChange,
+      tv.view.deadZone, tv.view.deadZoneChange, tv.buffer.atEdge, tv.view.ytChange,
+      tv.view.ybChange);
+
     return(
       ((tv.scroll.direction === SCROLL_UP && tv.buffer.atEdge !== EDGE_TOP && tv.view.deadZone === false) && (tv.scroll.directionChange || tv.view.ytChange)) ||
       ((tv.scroll.direction === SCROLL_DOWN && tv.buffer.atEdge !== EDGE_BOTTOM && tv.view.deadZone === false) && (tv.scroll.directionChange || tv.view.ybChange)) ||
@@ -570,7 +573,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
   tv.setElementPosition = function (index, y) {
     var el = angular.element(tv.buffer.elements[index]);
     if (el) {
-      // Move it into position
+      // Move it into position. Hide the element first to stop any janky behaviour with items being moved
       el.css('display', 'none');
       el.css('-webkit-transform', 'translateY(' + y + 'px)');
       el.css('display', 'block');

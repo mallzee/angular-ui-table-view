@@ -14,7 +14,11 @@ describe('UITableView', function () {
     bufferSize = 10;
 
   var html =
-    '<div mlz-ui-table-view="items" style="height:480px; width: 320px" width="320" height="480" mlz-ui-table-view-row-height="' + rowHeight + '" mlz-ui-table-view-buffer-size="' + bufferSize + '">'
+    '<div style="height:480px; width: 320px" width="320" height="480"'
+      + 'mlz-ui-table-view="items" mlz-ui-table-view-row-height="' + rowHeight + '"'
+      + 'mlz-ui-table-view-buffer-size="' + bufferSize + '"'
+      + 'mlz-ui-table-view-trigger-bottom="bottomTrigger()" '
+      + 'mlz-ui-table-view-trigger-top="topTrigger()">'
       + '<div class="mlz-ui-table-view-wrapper">'
       + '<div id="{{item.id}}" ng-repeat="item in tableView.buffer.items track by item.$$position">'
       + '<dt ng-bind="item.name"></dt>'
@@ -30,6 +34,8 @@ describe('UITableView', function () {
     inject(function ($compile, $rootScope, $document, $timeout) {
       var $scope = $rootScope.$new();
       $scope.items = [];
+      $scope.bottomTrigger = function () {};
+      $scope.topTrigger = function () {};
 
       document = $document;
 
@@ -1068,9 +1074,33 @@ describe('UITableView', function () {
 
     });
 
+    describe.only('into trigger zones', function () {
+      it('should trigger the bottom zone', function () {
+        var spy = sinon.spy(scope, 'bottomTrigger');
+
+        tv.setScrollYIndex(996);
+
+        expect(tv.view.triggerZone).to.equal('bottom');
+
+        expect(spy.calledOnce, 'bottomTrigger').to.be.true;
+      });
+
+      it('should trigger the upper zone', function () {
+
+        var spy = sinon.spy(scope, 'topTrigger');
+
+        tv.setScrollYIndex(996);
+        tv.setScrollYIndex(0);
+
+        expect(tv.view.triggerZone).to.equal('top');
+
+        expect(spy.calledOnce, 'topTrigger').to.be.true;
+      });
+    });
+
   });
 
-  xdescribe('changing items', function () {
+  describe('changing items', function () {
 
     initialiseWithArray();
 
