@@ -200,6 +200,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
     var position = 0;
 
     for (var i = 0; i < tv.buffer.items.length; i++) {
+      tv.buffer.items[i].$$index = i;
       tv.buffer.items[i].$$position = position++;
       tv.buffer.items[i].$$height = tv.row.height;
       tv.buffer.items[i].$$top = (tv.buffer.yTop + (tv.row.height * i));
@@ -410,10 +411,11 @@ function UITableView (scope, element, attr, $timeout, $log) {
     $log.debug('Slicing up', start, end, tv.getRelativeBufferPosition(end), px, items.length);
 
     for (var i = items.length - 1; i >= 0; i--) {
-      var position = tv.getRelativeBufferPosition(end--),
+      var position = tv.getRelativeBufferPosition(end),
         top = px + (tv.row.height * i);
 
       items[i].$$top = top;
+      items[i].$$index = end--;
       $log.debug('Extending', position, top, tv.buffer.items[position], 'with', items[i]);
       angular.extend(tv.buffer.items[position], items[i]);
       tv.setElementPosition(position, top);
@@ -433,6 +435,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
         top = px + (tv.row.height * i);
 
       items[i].$$top = top;
+      items[i].$$index = start + i;
       $log.debug('Extending', position, top, tv.buffer.items[position], 'with', items[i]);
       angular.extend(tv.buffer.items[position], items[i]);
       tv.setElementPosition(position, top);
@@ -576,6 +579,9 @@ function UITableView (scope, element, attr, $timeout, $log) {
   };
 
 
+  tv.deleteItem = function (index) {
+
+  };
   /**
    * Update a buffered elements coordinates
    * @param index
@@ -614,6 +620,7 @@ angular.module('mallzee.ui-table-view', [])
 
         // The master list of items has changed. Recalculate the virtual list
         scope.$watchCollection(attributes.mlzUiTableView, function (items) {
+          console.log('Items changed', arguments);
           scope.tableView.updatePositions(items);
         });
 

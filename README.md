@@ -1,5 +1,5 @@
 
-[![Build Status](https://travis-ci.org/mallzee/angular-ui-table-view.png?branch=master)](https://travis-ci.org/mallzee/angular-ui-table-view)
+[![Build Status](https://travis-ci.org/mallzee/angular-ui-table-view.png?branch=master)](https://travis-ci.org/mallzee/angular-ui-table-view)(https://www.codeship.io/projects/6e488550-7091-0131-b629-6a793a0a9a66/status)
 
 # AngularJS UITableView - WIP
 

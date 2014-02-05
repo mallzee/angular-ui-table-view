@@ -6,6 +6,7 @@
             <div id="{{item.$$position}}" ng-repeat="item in tableView.buffer.items track by item.$$position">
                 <dt ng-bind="item.name"></dt>
                 <dd ng-bind="item.details"></dd>
+                <button ng-click="deleteMe({{item.$$index}})">Delete Me {{item.$$index}} {{item.$$position}}</button>
             </div>
         </div>
     </div>

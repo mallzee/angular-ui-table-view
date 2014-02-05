@@ -1074,7 +1074,7 @@ describe('UITableView', function () {
 
     });
 
-    describe.only('into trigger zones', function () {
+    describe('into trigger zones', function () {
       it('should trigger the bottom zone', function () {
         var spy = sinon.spy(scope, 'bottomTrigger');
 

@@ -160,6 +160,8 @@ module.exports = function(grunt) {
 		// grunt.registerTask('default', ['jshint:beforeconcat', 'less:development', 'concat:devJs', 'concat:devCss']);
 		grunt.registerTask('default', ['concat:build', 'jshint:beforeconcatQ', 'less:development', 'uglify:build']);
 
+    grunt.registerTask('continuous', ['default', 'karma:continuous']);
+
     grunt.registerTask('server', [
       'default',
       'karma:unit:start',

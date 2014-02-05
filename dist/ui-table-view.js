@@ -32,7 +32,8 @@ function UITableView (scope, element, attr, $timeout, $log) {
     EDGE_TOP = 'top',
     EDGE_BOTTOM = 'bottom',
     SCROLL_UP = 'up',
-    SCROLL_DOWN = 'down';
+    SCROLL_DOWN = 'down',
+    TRIGGER_DISTANCE = 3;
 
 
   var tv = {},
@@ -59,6 +60,10 @@ function UITableView (scope, element, attr, $timeout, $log) {
   tv.row = {
     height: +attr.mlzUiTableViewRowHeight || ROW_HEIGHT,
     width: +attr.mlzUiTableViewColumnWidth || ROW_WIDTH
+  };
+
+  tv.trigger = {
+    distance: TRIGGER_DISTANCE
   };
 
   // The list of all items
@@ -195,6 +200,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
     var position = 0;
 
     for (var i = 0; i < tv.buffer.items.length; i++) {
+      tv.buffer.items[i].$$index = i;
       tv.buffer.items[i].$$position = position++;
       tv.buffer.items[i].$$height = tv.row.height;
       tv.buffer.items[i].$$top = (tv.buffer.yTop + (tv.row.height * i));
@@ -246,30 +252,6 @@ function UITableView (scope, element, attr, $timeout, $log) {
     }
   }
 
-  /**
-   * Detects if this move will cause the buffer to hit an edge.
-   *
-   * @param index
-   * @param distance
-   * @param direction
-   * @returns {boolean}
-   */
-  function willBufferHitEdge () {
-
-    var index = tv.scroll.yIndex;
-    var dir = tv.scroll.direction;
-    var dist = tv.scroll.yDistance;
-
-    if (direction)
-      if (
-        (dir === SCROLL_UP && (index - dist) <= 0) ||
-          (dir === SCROLL_DOWN && (index + tv.buffer.size + dist) >= (tv.items.length - 1))
-        ) {
-        return true;
-      }
-    return false;
-  }
-
   function validateBuffer() {
     // If we're breaking the boundaries
     // we need to adjust the buffer accordingly
@@ -311,6 +293,13 @@ function UITableView (scope, element, attr, $timeout, $log) {
     );
   }
 
+  function isTriggerRequired () {
+    $log.debug('Trigger required?', tv.view.triggerZone, tv.view.triggerZoneChange);
+    return (
+      (tv.view.triggerZone !== false && tv.view.triggerZoneChange)
+    );
+  }
+
   /**
    * Update the scroll model base on the current scroll position
    * @param y
@@ -346,6 +335,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
 
   /**
    * Update the view model based on the current scroll model
+   * TODO: Experiment with watchers to handle the delta changes
    */
   function updateViewModel () {
 
@@ -356,9 +346,15 @@ function UITableView (scope, element, attr, $timeout, $log) {
     tv.view.bottom = Math.floor(tv.view.yBottom / tv.row.height);
     tv.view.atEdge = !(tv.view.top > 0 && tv.view.bottom < tv.items.length - 1);
 
+    // Calculate if we're in a trigger zone and if there's been a change.
+    tv.view.triggerZone = (tv.view.yTop < tv.trigger.distance * tv.row.height) ? EDGE_TOP : tv.view.yBottom > ((tv.items.length - tv.trigger.distance - 1) * tv.row.height) ? EDGE_BOTTOM : false;
+    tv.view.triggerZoneChange = (tv.view.triggerZone !== tv._view.triggerZone);
+
+    // Calculate if we're in a dead zone and if there's been a change.
     tv.view.deadZone = (tv.view.yTop < tv.row.height) ? EDGE_TOP : tv.view.yBottom > ((tv.items.length - 1) * tv.row.height) ? EDGE_BOTTOM : false;
     tv.view.deadZoneChange = (tv.view.deadZone !== tv._view.deadZone);
 
+    // Calculate if there have been index changes on either side of the view
     tv.view.ytChange = (tv.view.top !== tv._view.top);
     tv.view.ybChange = (tv.view.bottom !== tv._view.bottom);
 
@@ -415,10 +411,11 @@ function UITableView (scope, element, attr, $timeout, $log) {
     $log.debug('Slicing up', start, end, tv.getRelativeBufferPosition(end), px, items.length);
 
     for (var i = items.length - 1; i >= 0; i--) {
-      var position = tv.getRelativeBufferPosition(end--),
+      var position = tv.getRelativeBufferPosition(end),
         top = px + (tv.row.height * i);
 
       items[i].$$top = top;
+      items[i].$$index = end--;
       $log.debug('Extending', position, top, tv.buffer.items[position], 'with', items[i]);
       angular.extend(tv.buffer.items[position], items[i]);
       tv.setElementPosition(position, top);
@@ -438,6 +435,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
         top = px + (tv.row.height * i);
 
       items[i].$$top = top;
+      items[i].$$index = start + i;
       $log.debug('Extending', position, top, tv.buffer.items[position], 'with', items[i]);
       angular.extend(tv.buffer.items[position], items[i]);
       tv.setElementPosition(position, top);
@@ -460,16 +458,8 @@ function UITableView (scope, element, attr, $timeout, $log) {
     // Lets move the view as well
     updateViewModel();
 
-    // If the buffer is at an edge, and we're scrolling towards that edge.
-    // We don't need to make any updates to the buffer
-    /*if (isBufferUpdateRequired() === false) {
-      $log.debug('Buffer updates not required');
-      setupNextTick();
-      return;
-    }*/
-
     // We're going to scroll right passed the limits of our buffer.
-    // We may as well just redraw from the new index and direction
+    // We may as well just redraw from the new index
     if (tv.buffer.reset) {
       switch(tv.scroll.direction) {
         case SCROLL_UP:
@@ -487,6 +477,11 @@ function UITableView (scope, element, attr, $timeout, $log) {
     // Update the DOM based on the models
     if (isRenderRequired()) {
       render();
+    }
+
+    // Do we need to call one of the edge trigger because we're in the zone?
+    if (isTriggerRequired()) {
+      trigger();
     }
 
     // Prep for the next pass
@@ -534,6 +529,26 @@ function UITableView (scope, element, attr, $timeout, $log) {
   }
 
   /**
+   * Trigger a function supplied to the directive
+   */
+  function trigger() {
+    switch (tv.view.triggerZone) {
+      case EDGE_TOP:
+        if (attr.mlzUiTableViewTriggerTop) {
+          scope.$eval(attr.mlzUiTableViewTriggerTop);
+        }
+        break;
+      case EDGE_BOTTOM:
+        if (attr.mlzUiTableViewTriggerBottom) {
+          scope.$eval(attr.mlzUiTableViewTriggerBottom);
+        }
+        break;
+      default:
+        $log.debug('Zone ' + tv.view.triggerZone + ' is not supported');
+    }
+  }
+
+  /**
    * Set the scroller to the given items index.
    * @param index
    */
@@ -564,6 +579,9 @@ function UITableView (scope, element, attr, $timeout, $log) {
   };
 
 
+  tv.deleteItem = function (index) {
+
+  };
   /**
    * Update a buffered elements coordinates
    * @param index
@@ -602,6 +620,7 @@ angular.module('mallzee.ui-table-view', [])
 
         // The master list of items has changed. Recalculate the virtual list
         scope.$watchCollection(attributes.mlzUiTableView, function (items) {
+          console.log('Items changed', arguments);
           scope.tableView.updatePositions(items);
         });
 
