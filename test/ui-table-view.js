@@ -15,16 +15,16 @@ describe('UITableView', function () {
 
   var html =
     '<div style="height:480px; width: 320px" width="320" height="480"'
-      + 'mlz-ui-table-view="items" mlz-ui-table-view-row-height="' + rowHeight + '"'
+      + 'mlz-ui-table-view items="items" mlz-ui-table-view-row-height="' + rowHeight + '"'
       + 'mlz-ui-table-view-buffer-size="' + bufferSize + '"'
       + 'mlz-ui-table-view-trigger-bottom="bottomTrigger()" '
       + 'mlz-ui-table-view-trigger-top="topTrigger()">'
-      + '<div class="mlz-ui-table-view-wrapper">'
+      //+ '<div class="mlz-ui-table-view-wrapper">'
       + '<div id="{{item.id}}" ng-repeat="item in tableView.buffer.items track by item.$$position">'
       + '<dt ng-bind="item.name"></dt>'
       + '<dd ng-bind="item.details"></dd>'
       + '</div>'
-      + '</div>'
+      //+ '</div>'
       + '</div>';
 
   beforeEach(module("mallzee.ui-table-view"));
@@ -36,6 +36,11 @@ describe('UITableView', function () {
       $scope.items = [];
       $scope.bottomTrigger = function () {};
       $scope.topTrigger = function () {};
+
+      $scope.deleteItem = function(index) {
+        console.log('Deleting items', index);
+        $scope.items.splice(index, 1);
+      };
 
       document = $document;
 
@@ -1098,6 +1103,43 @@ describe('UITableView', function () {
       });
     });
 
+  });
+
+  describe('deleting items', function () {
+
+    beforeEach(function () {
+      initialiseWithArray();
+    });
+
+    it('should remove an item', function () {
+      scope.deleteItem(0);
+      //timeout.flush();
+
+      expect(tv.items.length).to.equal(999);
+      expect(tv.wrapper.height).to.equal(99900);
+      expect(tv.items[0].id, 'Items 0').to.equal(1);
+      expect(tv.buffer.items[0].id, 'Buffered Items 0').to.equal(1);
+      expect(tv.buffer.items[0].$$top).to.equal(0);
+      expect(tv.buffer.items[1].id).to.equal(2);
+      expect(tv.buffer.items[1].$$top).to.equal(100);
+      expect(tv.buffer.items[2].id).to.equal(3);
+      expect(tv.buffer.items[2].$$top).to.equal(200);
+      expect(tv.buffer.items[3].id).to.equal(4);
+      expect(tv.buffer.items[3].$$top).to.equal(300);
+      expect(tv.buffer.items[4].id).to.equal(5);
+      expect(tv.buffer.items[4].$$top).to.equal(400);
+      expect(tv.buffer.items[5].id).to.equal(6);
+      expect(tv.buffer.items[5].$$top).to.equal(500);
+      expect(tv.buffer.items[6].id).to.equal(7);
+      expect(tv.buffer.items[6].$$top).to.equal(600);
+      expect(tv.buffer.items[7].id).to.equal(8);
+      expect(tv.buffer.items[7].$$top).to.equal(700);
+      expect(tv.buffer.items[8].id).to.equal(9);
+      expect(tv.buffer.items[8].$$top).to.equal(800);
+      expect(tv.buffer.items[9].id).to.equal(10);
+      expect(tv.buffer.items[9].$$top).to.equal(900);
+
+    });
   });
 
   describe('changing items', function () {

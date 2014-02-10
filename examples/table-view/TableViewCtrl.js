@@ -19,7 +19,7 @@ angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', func
 
   $scope.deleteMe = function(index) {
     console.log('Delete Me', index);
-    $scope.items.splice(index, 1);
+      $scope.items.splice(index, 1);
   };
 
   console.log('Items now has ' + $scope.items.length + ' element');

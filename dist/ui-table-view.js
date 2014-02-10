@@ -192,6 +192,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
 
     // Recalculate the virtual wrapper height
     tv.wrapper.height = tv.items.length * tv.row.height;
+    console.log('Wrapper height', tv.wrapper.height, tv.items.length);
     wrapper.css('height', tv.wrapper.height + 'px');
 
     // Make a copy of the original items so we're not overwriting the master list
@@ -619,9 +620,10 @@ angular.module('mallzee.ui-table-view', [])
         scope.tableView.initialise();
 
         // The master list of items has changed. Recalculate the virtual list
-        scope.$watchCollection(attributes.mlzUiTableView, function (items) {
-          console.log('Items changed', arguments);
-          scope.tableView.updatePositions(items);
+        scope.$watchCollection(attributes.mlzUiTableView, function (oldItems, newItems) {
+          console.log('Items changed', oldItems.length);
+          
+          scope.tableView.updatePositions(newItems);
         });
 
         // The status bar has been tapped. To the top with ye!
