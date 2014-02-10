@@ -66,9 +66,6 @@ function UITableView (scope, element, attr, $timeout, $log) {
     distance: TRIGGER_DISTANCE
   };
 
-  // The list of all items
-  tv.items = scope.$eval(attr.mlzUiTableView) || [];
-
   // Information about the scroll status
   // _ indicates the value of that item on the previous tick
   tv.scroll = {
@@ -155,18 +152,20 @@ function UITableView (scope, element, attr, $timeout, $log) {
    * This should be called whenever the containing elements size has changed
    */
   tv.initialise = function () {
-    // Get the containing dimensions to base our calculations from.
-    tv.container.height = +container.attr('height') || container.prop('clientHeight');
-    tv.container.width = +container.attr('width') || container.prop('clientWidth');
+
+    updateContainer();
+    updateWrapper();
 
     // Calculate the number of items that can be visible at a given time
     tv.view.size = Math.ceil(tv.container.height / tv.row.height) + 1;
     tv.buffer.bottom = tv.buffer.size - 1 || BUFFER_SIZE - 1;
     tv.buffer.yBottom = tv.buffer.size * tv.row.height || BUFFER_SIZE * ROW_HEIGHT;
     tv.buffer.distance = tv.buffer.size - tv.view.size;
-    initialiseElements();
+
+    positionElements();
+
     $log.debug('Scroller initialised', tv.container.height, tv.buffer.size, tv.buffer.distance, tv.view.size,
-      tv.row.height, tv.buffer.bottom);
+      tv.row.height, scope.items.length, tv.buffer.items.length);
   };
 
   /**
@@ -177,44 +176,41 @@ function UITableView (scope, element, attr, $timeout, $log) {
   };
 
   /**
+   * Calculate the size of the container used by the scroller
+   */
+  function updateContainer() {
+    // Get the containing dimensions to base our calculations from.
+    tv.container.height = +container.attr('height') || container.prop('clientHeight');
+    tv.container.width = +container.attr('width') || container.prop('clientWidth');
+  }
+
+  /**
+   * Calculate the wrapper size based on the current items list
+   */
+  function updateWrapper() {
+    // Recalculate the virtual wrapper height
+    tv.wrapper.height = scope.items.length * tv.row.height;
+    wrapper.css('height', tv.wrapper.height + 'px');
+  }
+  /**
    * Add the metadata required by ng-repeats track by to stop DOM creation/deletion
    *
    * @param items
    * @returns {boolean}
    */
-  tv.updatePositions = function (items) {
+  tv.initialiseBuffer = function () {
 
-    tv.items = items;
-
-    if (!tv.items) {
+    if (!scope.items) {
       return false;
     }
-
-    // Recalculate the virtual wrapper height
-    tv.wrapper.height = tv.items.length * tv.row.height;
-    console.log('Wrapper height', tv.wrapper.height, tv.items.length);
-    wrapper.css('height', tv.wrapper.height + 'px');
-
-    // Make a copy of the original items so we're not overwriting the master list
-    angular.copy(tv.items.slice(tv.buffer.top, tv.buffer.bottom + 1), tv.buffer.items);
-
-    var position = 0;
+    angular.copy(scope.items.slice(tv.buffer.top, tv.buffer.bottom + 1), tv.buffer.items);
 
     for (var i = 0; i < tv.buffer.items.length; i++) {
-      tv.buffer.items[i].$$index = i;
-      tv.buffer.items[i].$$position = position++;
-      tv.buffer.items[i].$$height = tv.row.height;
-      tv.buffer.items[i].$$top = (tv.buffer.yTop + (tv.row.height * i));
-      tv.buffer.items[i].$$visible = false;
-
-      if (i < tv.view.size) {
-        tv.buffer.items[i].$$visible = true;
-      }
-
-      if (position >= tv.buffer.items.length) {
-        position = 0;
-      }
+      tv.buffer.items[i].$$position = i;
+      console.log('Adding position', tv.buffer.items[i].$$position)
     }
+
+    tv.drawBuffer();
 
     $timeout(function () {
       tv.initialise();
@@ -222,6 +218,37 @@ function UITableView (scope, element, attr, $timeout, $log) {
 
     // We've made changes to the models so we must update the deltas
     setupNextTick();
+  };
+
+  tv.drawBuffer = function() {
+    // Make a copy of the original items so we're not overwriting the master list
+    var tempItems = scope.items.slice(tv.buffer.top, tv.buffer.bottom + 1);
+    //angular.copy(scope.items.slice(tv.buffer.top, tv.buffer.bottom + 1), tv.buffer.items);
+
+    var position = tv.getRelativeBufferPosition(tv.buffer.top);
+    console.log('Drawing list from', position, tv.buffer.top, tv.buffer.bottom);
+
+    for (var i = tv.buffer.top; i <= tv.buffer.bottom; i++) {
+      var pos = tv.getRelativeBufferPosition(i);
+
+      console.log('Extending', tv.buffer.items[pos], scope.items[i]);
+      angular.extend(tv.buffer.items[pos], scope.items[i]);
+
+      tv.buffer.items[pos].$$index = i;
+      tv.buffer.items[pos].$$height = tv.row.height;
+      tv.buffer.items[pos].$$top = tv.row.height * i;
+      tv.buffer.items[pos].$$visible = false;
+      tv.buffer.items[pos].$$position = pos;
+
+      if (i < tv.view.size) {
+        tv.buffer.items[i].$$visible = true;
+      }
+
+      position++;
+      if (position >= tv.buffer.items.length) {
+        position = 0;
+      }
+    }
   };
 
   /**
@@ -237,7 +264,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
   /**
    * Setup the buffered elements ready for manipulating
    */
-  function initialiseElements () {
+  function positionElements () {
 
     tv.buffer.elements = element.children().children();
     for (var i = 0; i < tv.buffer.items.length; i++) {
@@ -259,15 +286,15 @@ function UITableView (scope, element, attr, $timeout, $log) {
     if (tv.buffer.top < 0) {
       tv.buffer.top = 0;
       tv.buffer.bottom = tv.buffer.size - 1;
-    } else if (tv.buffer.bottom >= tv.items.length) {
-      tv.buffer.top = tv.items.length - tv.buffer.size;
-      tv.buffer.bottom = tv.items.length - 1;
+    } else if (tv.buffer.bottom >= scope.items.length) {
+      tv.buffer.top = scope.items.length - tv.buffer.size;
+      tv.buffer.bottom = scope.items.length - 1;
     }
 
     // Update the extra properties of the buffer
     tv.buffer.yTop = tv.buffer.top * tv.row.height;
     tv.buffer.yBottom = (tv.buffer.bottom + 1) * tv.row.height;
-    tv.buffer.atEdge = (tv.buffer.top <= 0) ? EDGE_TOP : (tv.buffer.bottom >= tv.items.length - 1) ? EDGE_BOTTOM : false;
+    tv.buffer.atEdge = (tv.buffer.top <= 0) ? EDGE_TOP : (tv.buffer.bottom >= scope.items.length - 1) ? EDGE_BOTTOM : false;
   }
 
   /**
@@ -317,8 +344,9 @@ function UITableView (scope, element, attr, $timeout, $log) {
       tv.scroll.yIndex = 0;
     }
 
-    if (tv.scroll.yIndex >= tv.items.length) {
-      tv.scroll.yIndex = tv.items.length - 1;
+    console.log('Scroll update', tv);
+    if (tv.scroll.yIndex >= scope.items.length) {
+      tv.scroll.yIndex = scope.items.length - 1;
     }
 
     tv.scroll.yDistance = Math.abs(tv.scroll.yIndex - tv._scroll.yIndex);
@@ -345,14 +373,14 @@ function UITableView (scope, element, attr, $timeout, $log) {
     tv.view.yBottom = tv.scroll.y + tv.container.height;
     tv.view.top = tv.scroll.yIndex;
     tv.view.bottom = Math.floor(tv.view.yBottom / tv.row.height);
-    tv.view.atEdge = !(tv.view.top > 0 && tv.view.bottom < tv.items.length - 1);
+    tv.view.atEdge = !(tv.view.top > 0 && tv.view.bottom < scope.items.length - 1);
 
     // Calculate if we're in a trigger zone and if there's been a change.
-    tv.view.triggerZone = (tv.view.yTop < tv.trigger.distance * tv.row.height) ? EDGE_TOP : tv.view.yBottom > ((tv.items.length - tv.trigger.distance - 1) * tv.row.height) ? EDGE_BOTTOM : false;
+    tv.view.triggerZone = (tv.view.yTop < tv.trigger.distance * tv.row.height) ? EDGE_TOP : tv.view.yBottom > ((scope.items.length - tv.trigger.distance - 1) * tv.row.height) ? EDGE_BOTTOM : false;
     tv.view.triggerZoneChange = (tv.view.triggerZone !== tv._view.triggerZone);
 
     // Calculate if we're in a dead zone and if there's been a change.
-    tv.view.deadZone = (tv.view.yTop < tv.row.height) ? EDGE_TOP : tv.view.yBottom > ((tv.items.length - 1) * tv.row.height) ? EDGE_BOTTOM : false;
+    tv.view.deadZone = (tv.view.yTop < tv.row.height) ? EDGE_TOP : tv.view.yBottom > ((scope.items.length - 1) * tv.row.height) ? EDGE_BOTTOM : false;
     tv.view.deadZoneChange = (tv.view.deadZone !== tv._view.deadZone);
 
     // Calculate if there have been index changes on either side of the view
@@ -407,7 +435,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
 
   function scrollingUp (start, end) {
 
-    var items = tv.items.slice(start, end + 1),
+    var items = scope.items.slice(start, end + 1),
       px = start * tv.row.height;
     $log.debug('Slicing up', start, end, tv.getRelativeBufferPosition(end), px, items.length);
 
@@ -426,7 +454,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
 
   function scrollingDown (start, end) {
 
-    var items = tv.items.slice(start, end + 1),
+    var items = scope.items.slice(start, end + 1),
       px = start * tv.row.height;
 
     $log.debug('Slicing down', start, end, tv.getRelativeBufferPosition(start), px, items.length);
@@ -581,8 +609,25 @@ function UITableView (scope, element, attr, $timeout, $log) {
 
 
   tv.deleteItem = function (index) {
+    console.log('Deleting item @', index);
+    scope.items.splice(index, 1);
 
+    // TODO: Move buffer window up if we're at the end of the items list
+    //angular.copy(scope.items.slice(tv.buffer.top, tv.buffer.bottom + 1), tv.buffer.items);
+
+    // If the buffer is at the bottom and there is a deletion
+    // We need to slide the buffer up one item to compensate for
+    // the removal
+    if (tv.buffer.atEdge === EDGE_BOTTOM) {
+      tv.buffer.top--;
+      tv.buffer.bottom--;
+    }
+    
+    tv.drawBuffer();
+    positionElements();
+    updateWrapper();
   };
+
   /**
    * Update a buffered elements coordinates
    * @param index
@@ -611,20 +656,35 @@ angular.module('mallzee.ui-table-view', [])
   .directive('mlzUiTableView', ['$window', '$timeout', '$log', function ($window, $timeout, $log) {
     return {
       restrict: 'A',
-      transclude: false,
-      scope: true,
-      link: function (scope, element, attributes) {
+      transclude: true,
+      /*scope: {
+        items: '='
+      },*/
+      replace: false,
+      /*controller: ['$scope', function ($scope) {
 
+      }],*/
+      template: '<div class="mlz-ui-table-view-wrapper" ng-transclude></div>',
+      link: function (scope, element, attributes) {
+        console.log('link scope', scope);
         // TODO: Passing all this stuff seems wrong. Clean this up
-        scope.tableView = new UITableView(scope, element, attributes, $timeout, $log);
+        scope.tableView = UITableView(scope, element, attributes, $timeout, $log);
         scope.tableView.initialise();
+        scope.tableView.initialiseBuffer();
+
+        scope.items = scope.$eval(attributes.items);
 
         // The master list of items has changed. Recalculate the virtual list
-        scope.$watchCollection(attributes.mlzUiTableView, function (oldItems, newItems) {
-          console.log('Items changed', oldItems.length);
-          
-          scope.tableView.updatePositions(newItems);
+        scope.$watchCollection('items', function (items, old) {
+
+          //scope.tableView.updatePositions();
+          console.log('Items changed', items.length, old.length, scope.tableView.buffer.items);
+
         });
+
+        scope.addItem = function(item, index) {
+          console.log('Adding item', item, index);
+        };
 
         // The status bar has been tapped. To the top with ye!
         $window.addEventListener('statusTap', function () {

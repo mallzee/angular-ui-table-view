@@ -203,6 +203,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
     if (!scope.items) {
       return false;
     }
+
     angular.copy(scope.items.slice(tv.buffer.top, tv.buffer.bottom + 1), tv.buffer.items);
 
     for (var i = 0; i < tv.buffer.items.length; i++) {
@@ -221,8 +222,12 @@ function UITableView (scope, element, attr, $timeout, $log) {
   };
 
   tv.drawBuffer = function() {
+
+    if (scope.items.length <= 0 || tv.buffer.items.length <= 0) {
+      return false;
+    }
     // Make a copy of the original items so we're not overwriting the master list
-    var tempItems = scope.items.slice(tv.buffer.top, tv.buffer.bottom + 1);
+    //var tempItems = scope.items.slice(tv.buffer.top, tv.buffer.bottom + 1);
     //angular.copy(scope.items.slice(tv.buffer.top, tv.buffer.bottom + 1), tv.buffer.items);
 
     var position = tv.getRelativeBufferPosition(tv.buffer.top);
@@ -231,7 +236,7 @@ function UITableView (scope, element, attr, $timeout, $log) {
     for (var i = tv.buffer.top; i <= tv.buffer.bottom; i++) {
       var pos = tv.getRelativeBufferPosition(i);
 
-      console.log('Extending', tv.buffer.items[pos], scope.items[i]);
+      console.log('Extending', pos, tv.buffer.items[pos], scope.items[i]);
       angular.extend(tv.buffer.items[pos], scope.items[i]);
 
       tv.buffer.items[pos].$$index = i;
@@ -615,6 +620,14 @@ function UITableView (scope, element, attr, $timeout, $log) {
     // TODO: Move buffer window up if we're at the end of the items list
     //angular.copy(scope.items.slice(tv.buffer.top, tv.buffer.bottom + 1), tv.buffer.items);
 
+    // If the buffer is at the bottom and there is a deletion
+    // We need to slide the buffer up one item to compensate for
+    // the removal
+    if (tv.buffer.atEdge === EDGE_BOTTOM) {
+      tv.buffer.top--;
+      tv.buffer.bottom--;
+    }
+
     tv.drawBuffer();
     positionElements();
     updateWrapper();
@@ -658,7 +671,6 @@ angular.module('mallzee.ui-table-view', [])
       }],*/
       template: '<div class="mlz-ui-table-view-wrapper" ng-transclude></div>',
       link: function (scope, element, attributes) {
-        console.log('link scope', scope);
         // TODO: Passing all this stuff seems wrong. Clean this up
         scope.tableView = UITableView(scope, element, attributes, $timeout, $log);
         scope.tableView.initialise();
@@ -669,7 +681,7 @@ angular.module('mallzee.ui-table-view', [])
         // The master list of items has changed. Recalculate the virtual list
         scope.$watchCollection('items', function (items, old) {
 
-          //scope.tableView.updatePositions();
+          scope.tableView.drawBuffer();
           console.log('Items changed', items.length, old.length, scope.tableView.buffer.items);
 
         });
