@@ -19,6 +19,7 @@ module.exports = function(config) {
       'bower_components/angular/angular.js',
       'bower_components/angular-mocks/angular-mocks.js',
       'bower_components/lodash/dist/lodash.js',
+      'dist/ui-table-view.css',
       'src/*.js',
       'test/*.js'
     ],

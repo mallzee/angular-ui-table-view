@@ -1,11 +1,11 @@
 <div ng-controller='TableViewCtrl'>
     <h1>UI Table View Demo</h1>
-    <h2>Items length: {{items.length}}</h2>
-    <div mlz-ui-table-view items="items" mlz-ui-table-view-row-height="100" mlz-ui-table-view-buffer-size="10">
-        <div id="{{item.$$position}}" ng-repeat="item in tableView.buffer.items track by item.$$position">
+    <h2>Items length: {{list.length}}</h2>
+    <mlz-ui-table-view list="list" style="width:320px; height: 455px; border: 1px solid #eee" row-height="100" buffer-size="10">
+        <div id="{{item.$$position}}" ng-repeat="item in items track by item.$$position">
             <dt ng-bind="item.name"></dt>
             <dd ng-bind="item.details"></dd>
-            <button ng-click="tableView.deleteItem(item.$$index)">Delete Me {{item.$$index}} {{item.$$position}}</button>
+            <button ng-click="deleteItem(item.$$index)">Delete Me {{item.$$index}} {{item.$$position}}</button>
         </div>
-    </div>
+    </mlz-ui-table-view>
 </div>

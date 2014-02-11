@@ -141,7 +141,8 @@ module.exports = function(grunt) {
 			karma: {
 				unit: {
 					configFile: 'karma.conf.js',
-          background: true
+          background: true,
+          browsers: ['Chrome']
         },
         continuous: {
           configFile: 'karma.conf.js',
@@ -168,7 +169,6 @@ module.exports = function(grunt) {
       'connect:server:livereload',
       'watch'
     ]);
-
 
   }
 	init({});		//initialize here for defaults (init may be called again later within a task)

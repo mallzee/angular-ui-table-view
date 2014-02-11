@@ -5,12 +5,12 @@
 
 angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', function($scope) {
 
-  $scope.items = [];
+  $scope.list = [];
 
   console.log('Populating items');
 
   for (var i = 0; i < 1000; i++) {
-    $scope.items.push({
+    $scope.list.push({
       id: i,
       name: 'Name ' + i,
       detail: 'Detail ' + i
@@ -19,9 +19,9 @@ angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', func
 
   $scope.deleteMe = function(index) {
     console.log('Delete Me', index);
-      $scope.items.splice(index, 1);
+      $scope.list.splice(index, 1);
   };
 
-  console.log('Items now has ' + $scope.items.length + ' element');
+  console.log('Items now has ' + $scope.list.length + ' element');
 
 }]);
