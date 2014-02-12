@@ -28,6 +28,7 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-contrib-cssmin');
 	grunt.loadNpmTasks('grunt-contrib-jshint');
+  grunt.loadNpmTasks('grunt-remove-logging');
 	grunt.loadNpmTasks('grunt-karma');
 
 	/**
@@ -77,7 +78,7 @@ module.exports = function(grunt) {
 				},
         build: {
           src: ['src/ui-table-view.js'],
-          dest: 'dist/ui-table-view.js'
+          dest: 'debug/ui-table-view.js'
         }
 			},
 			jshint: {
@@ -125,7 +126,7 @@ module.exports = function(grunt) {
 				},
 				build: {
 					files:  {},
-					src:    'src/ui-table-view.js',
+					src:    'debug/ui-table-view.js',
 					dest:   'dist/ui-table-view.min.js'
 				}
 			},
@@ -138,7 +139,13 @@ module.exports = function(grunt) {
 					}
 				}
 			},
-			karma: {
+      removelogging: {
+        dist: {
+          src: "debug/ui-table-view.js",
+          dest: "dist/ui-table-view.js"
+        }
+      },
+      karma: {
 				unit: {
 					configFile: 'karma.conf.js',
           background: true,
@@ -159,7 +166,7 @@ module.exports = function(grunt) {
 		*/
 		// Default task(s).
 		// grunt.registerTask('default', ['jshint:beforeconcat', 'less:development', 'concat:devJs', 'concat:devCss']);
-		grunt.registerTask('default', ['concat:build', 'jshint:beforeconcatQ', 'less:development', 'uglify:build']);
+		grunt.registerTask('default', ['concat:build', 'jshint:beforeconcatQ', 'less:development', 'removelogging:dist', 'uglify:build']);
 
     grunt.registerTask('continuous', ['default', 'karma:continuous']);
 
