@@ -150,12 +150,7 @@
           // Make the buffered items available on the scope
           scope.items = items;
 
-          scope.addItem = function (item) {
-            
-          };
-
           scope.deleteItem = function (index) {
-            
 
             // Remove the item from the list
             list.splice(index, 1);
@@ -163,7 +158,6 @@
             // If we're at the bottom edge of the buffer.
             // We need to reduce the buffer indexes by the amount deleted
             if (buffer.atEdge === EDGE_BOTTOM) {
-              
               buffer.top--;
               buffer.bottom--;
             }
@@ -201,7 +195,7 @@
           /*scope.$watch(function () {
            return container.el[0].scrollTop;
            }, function(y) {
-           
+           $log.debug('Watching scrollTop', y);
            });*/
         }
       };
@@ -246,8 +240,6 @@
         createBuffer();
 
         positionElements();
-
-        
       }
 
       /**
@@ -273,7 +265,9 @@
 
         for (var i = 0; i < items.length; i++) {
           items[i].$$position = i;
-          
+        }
+
+        drawBuffer();
 
         // We've made changes to the models so we must update the deltas
         setupNextTick();
@@ -286,12 +280,10 @@
         }
 
         var position = getRelativeBufferPosition(buffer.top);
-        
 
         for (var i = buffer.top; i <= buffer.bottom; i++) {
           var pos = getRelativeBufferPosition(i);
 
-          
           angular.extend(items[pos], list[i]);
 
           items[pos].$$index = i;
@@ -378,7 +370,6 @@
         angular.extend(_scroll, scroll);
         angular.extend(_view, view);
         angular.extend(_buffer, buffer);
-        
       }
 
       /**
@@ -388,7 +379,6 @@
         $timeout(function () {
           elements = container.el.children().children();
           for (var i = buffer.top; i < buffer.size; i++) {
-            
 
             var el = angular.element(elements[getRelativeBufferPosition(i)]);
             el.css({
@@ -422,16 +412,17 @@
        * Calculates if a render is required.
        */
       function isRenderRequired () {
-        
-
         return(
           ((scroll.direction === SCROLL_UP && buffer.atEdge !== EDGE_TOP && view.deadZone === false) && (scroll.directionChange || view.ytChange)) ||
             ((scroll.direction === SCROLL_DOWN && buffer.atEdge !== EDGE_BOTTOM && view.deadZone === false) && (scroll.directionChange || view.ybChange)) || !(view.deadZone !== false && view.deadZoneChange === false)
           );
       }
 
+      /**
+       * Calculates if a trigger is required
+       * @returns {boolean|*}
+       */
       function isTriggerRequired () {
-        
         return (
           (view.triggerZone !== false && view.triggerZoneChange)
           );
@@ -484,7 +475,6 @@
         view.atEdge = !(view.top > 0 && view.bottom < list.length - 1);
 
         // Calculate if we're in a trigger zone and if there's been a change.
-        
         view.triggerZone = (view.yTop < trigger.distance * row.height) ? EDGE_TOP : view.yBottom > ((list.length - trigger.distance - 1) * row.height) ? EDGE_BOTTOM : false;
         view.triggerZoneChange = (view.triggerZone !== _view.triggerZone);
 
@@ -496,7 +486,6 @@
         view.ytChange = (view.top !== _view.top);
         view.ybChange = (view.bottom !== _view.bottom);
 
-        
       };
 
       /**
@@ -505,7 +494,6 @@
        * @param edge
        */
       function setBufferToIndex (index) {
-        
         buffer.top = index;
         buffer.bottom = buffer.top + buffer.size;
         validateBuffer();
@@ -535,11 +523,10 @@
             buffer.bottom = index + buffer.size - 1;
             break;
           default:
-            
+            $log.warn('We only know how to deal with scrolling on the y axis for now');
             break;
         }
         validateBuffer();
-        
       }
 
 
@@ -552,7 +539,6 @@
 
         var itemsToMerge = list.slice(start, end + 1),
           px = start * row.height;
-        
 
         for (var i = itemsToMerge.length - 1; i >= 0; i--) {
           var position = getRelativeBufferPosition(end),
@@ -560,7 +546,7 @@
 
           itemsToMerge[i].$$top = top;
           itemsToMerge[i].$$index = end--;
-          
+
           angular.extend(items[position], itemsToMerge[i]);
           renderElement(position, top);
         }
@@ -576,15 +562,13 @@
         var itemsToMerge = list.slice(start, end + 1),
           px = start * row.height;
 
-        
-
         for (var i = 0; i < itemsToMerge.length; i++) {
           var position = getRelativeBufferPosition(start + i),
             top = px + (row.height * i);
 
           itemsToMerge[i].$$top = top;
           itemsToMerge[i].$$index = start + i;
-          
+
           angular.extend(items[position], itemsToMerge[i]);
           renderElement(position, top);
         }
@@ -637,7 +621,6 @@
        */
       function renderElement (index, y) {
         var element = angular.element(elements[index]);
-        
         element.css('-webkit-transform', 'translateY(' + y + 'px)');
       }
 
@@ -645,7 +628,6 @@
        * Trigger a function supplied to the directive
        */
       function triggerEdge () {
-        
         switch (view.triggerZone) {
           case EDGE_TOP:
             triggerTop();
@@ -654,7 +636,7 @@
             triggerBottom();
             break;
           default:
-            
+            $log.warn('Zone ' + view.triggerZone + ' is not supported');
         }
       }
 

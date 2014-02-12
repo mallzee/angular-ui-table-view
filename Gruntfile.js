@@ -142,14 +142,16 @@ module.exports = function(grunt) {
       removelogging: {
         dist: {
           src: "debug/ui-table-view.js",
-          dest: "dist/ui-table-view.js"
+          dest: "dist/ui-table-view.js",
+          namespace: [$log],
+          methods: [debug]
         }
       },
       karma: {
 				unit: {
 					configFile: 'karma.conf.js',
-          background: true,
-          browsers: ['Chrome']
+          background: true
+          //browsers: ['Chrome']
         },
         continuous: {
           configFile: 'karma.conf.js',

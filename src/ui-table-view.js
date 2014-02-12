@@ -151,11 +151,11 @@
           scope.items = items;
 
           scope.addItem = function (item) {
-            console.log('Add item', item);
+            $log.debug('Add item', item);
           };
 
           scope.deleteItem = function (index) {
-            console.log('Delete item @ ', index);
+            $log.debug('Delete item @ ', index);
 
             // Remove the item from the list
             list.splice(index, 1);
@@ -163,7 +163,7 @@
             // If we're at the bottom edge of the buffer.
             // We need to reduce the buffer indexes by the amount deleted
             if (buffer.atEdge === EDGE_BOTTOM) {
-              console.log('Deleting from the bottom edge');
+              $log.debug('Deleting from the bottom edge');
               buffer.top--;
               buffer.bottom--;
             }
@@ -201,7 +201,7 @@
           /*scope.$watch(function () {
            return container.el[0].scrollTop;
            }, function(y) {
-           console.log('Watching scrollTop', y);
+           $log.debug('Watching scrollTop', y);
            });*/
         }
       };
@@ -247,7 +247,7 @@
 
         positionElements();
 
-        console.log('Scroller initialised', container.height, buffer.size, buffer.distance, view.size,
+        $log.debug('Scroller initialised', container.height, buffer.size, buffer.distance, view.size,
           row.height, list.length, items.length);
       }
 
@@ -274,7 +274,7 @@
 
         for (var i = 0; i < items.length; i++) {
           items[i].$$position = i;
-          console.log('Adding position', items[i].$$position)
+          $log.debug('Adding position', items[i].$$position)
         }
 
         drawBuffer();
@@ -290,12 +290,12 @@
         }
 
         var position = getRelativeBufferPosition(buffer.top);
-        console.log('Drawing list from', position, buffer.top, buffer.bottom);
+        $log.debug('Drawing list from', position, buffer.top, buffer.bottom);
 
         for (var i = buffer.top; i <= buffer.bottom; i++) {
           var pos = getRelativeBufferPosition(i);
 
-          console.log('Extending', pos, items[pos], list[i]);
+          $log.debug('Extending', pos, items[pos], list[i]);
           angular.extend(items[pos], list[i]);
 
           items[pos].$$index = i;
@@ -382,7 +382,7 @@
         angular.extend(_scroll, scroll);
         angular.extend(_view, view);
         angular.extend(_buffer, buffer);
-        console.log('Setup next tick', scroll.y, buffer.top, buffer.bottom, buffer.yTop, buffer.yBottom);
+        $log.debug('Setup next tick', scroll.y, buffer.top, buffer.bottom, buffer.yTop, buffer.yBottom);
       }
 
       /**
@@ -392,7 +392,7 @@
         $timeout(function () {
           elements = container.el.children().children();
           for (var i = buffer.top; i < buffer.size; i++) {
-            console.log('Positioning element', i, buffer.top, buffer.size);
+            $log.debug('Positioning element', i, buffer.top, buffer.size);
 
             var el = angular.element(elements[getRelativeBufferPosition(i)]);
             el.css({
@@ -426,7 +426,7 @@
        * Calculates if a render is required.
        */
       function isRenderRequired () {
-        console.log('Render required?', scroll.direction, scroll.directionChange,
+        $log.debug('Render required?', scroll.direction, scroll.directionChange,
           view.deadZone, view.deadZoneChange, buffer.atEdge, view.ytChange,
           view.ybChange);
 
@@ -437,7 +437,7 @@
       }
 
       function isTriggerRequired () {
-        console.log('Trigger required?', view.triggerZone, view.triggerZoneChange);
+        $log.debug('Trigger required?', view.triggerZone, view.triggerZoneChange);
         return (
           (view.triggerZone !== false && view.triggerZoneChange)
           );
@@ -490,7 +490,7 @@
         view.atEdge = !(view.top > 0 && view.bottom < list.length - 1);
 
         // Calculate if we're in a trigger zone and if there's been a change.
-        console.log(scroll.y, container.height, view.yTop, view.yBottom, list.length, trigger.distance, row.height);
+        $log.debug(scroll.y, container.height, view.yTop, view.yBottom, list.length, trigger.distance, row.height);
         view.triggerZone = (view.yTop < trigger.distance * row.height) ? EDGE_TOP : view.yBottom > ((list.length - trigger.distance - 1) * row.height) ? EDGE_BOTTOM : false;
         view.triggerZoneChange = (view.triggerZone !== _view.triggerZone);
 
@@ -502,7 +502,7 @@
         view.ytChange = (view.top !== _view.top);
         view.ybChange = (view.bottom !== _view.bottom);
 
-        console.log('Updated view model', view.yTop, view.yBottom, container.height, scroll.y);
+        $log.debug('Updated view model', view.yTop, view.yBottom, container.height, scroll.y);
       };
 
       /**
@@ -511,7 +511,7 @@
        * @param edge
        */
       function setBufferToIndex (index) {
-        console.log('Setting buffer to index', index);
+        $log.debug('Setting buffer to index', index);
         buffer.top = index;
         buffer.bottom = buffer.top + buffer.size;
         validateBuffer();
@@ -541,11 +541,11 @@
             buffer.bottom = index + buffer.size - 1;
             break;
           default:
-            console.log('We only know how to deal with scrolling on the y axis for now');
+            $log.debug('We only know how to deal with scrolling on the y axis for now');
             break;
         }
         validateBuffer();
-        console.log('Updated buffer model', index, buffer.top, buffer.bottom, buffer.atEdge);
+        $log.debug('Updated buffer model', index, buffer.top, buffer.bottom, buffer.atEdge);
       }
 
 
@@ -558,7 +558,7 @@
 
         var itemsToMerge = list.slice(start, end + 1),
           px = start * row.height;
-        console.log('Slicing up', start, end, getRelativeBufferPosition(end), px, itemsToMerge.length);
+        $log.debug('Slicing up', start, end, getRelativeBufferPosition(end), px, itemsToMerge.length);
 
         for (var i = itemsToMerge.length - 1; i >= 0; i--) {
           var position = getRelativeBufferPosition(end),
@@ -566,7 +566,7 @@
 
           itemsToMerge[i].$$top = top;
           itemsToMerge[i].$$index = end--;
-          console.log('Extending', position, top, items[position], 'with', itemsToMerge[i]);
+          $log.debug('Extending', position, top, items[position], 'with', itemsToMerge[i]);
           angular.extend(items[position], itemsToMerge[i]);
           renderElement(position, top);
         }
@@ -582,7 +582,7 @@
         var itemsToMerge = list.slice(start, end + 1),
           px = start * row.height;
 
-        console.log('Slicing down', start, end, getRelativeBufferPosition(start), px, itemsToMerge.length);
+        $log.debug('Slicing down', start, end, getRelativeBufferPosition(start), px, itemsToMerge.length);
 
         for (var i = 0; i < itemsToMerge.length; i++) {
           var position = getRelativeBufferPosition(start + i),
@@ -590,7 +590,7 @@
 
           itemsToMerge[i].$$top = top;
           itemsToMerge[i].$$index = start + i;
-          console.log('Extending', position, top, items[position], 'with', itemsToMerge[i]);
+          $log.debug('Extending', position, top, items[position], 'with', itemsToMerge[i]);
           angular.extend(items[position], itemsToMerge[i]);
           renderElement(position, top);
         }
@@ -643,7 +643,7 @@
        */
       function renderElement (index, y) {
         var element = angular.element(elements[index]);
-        console.log('Rendering element', index, 'at y:', y, element);
+        $log.debug('Rendering element', index, 'at y:', y, element);
         element.css('-webkit-transform', 'translateY(' + y + 'px)');
       }
 
@@ -651,7 +651,7 @@
        * Trigger a function supplied to the directive
        */
       function triggerEdge () {
-        console.log('Trigger edge', view.triggerZone);
+        $log.debug('Trigger edge', view.triggerZone);
         switch (view.triggerZone) {
           case EDGE_TOP:
             triggerTop();
@@ -660,7 +660,7 @@
             triggerBottom();
             break;
           default:
-            console.log('Zone ' + view.triggerZone + ' is not supported');
+            $log.debug('Zone ' + view.triggerZone + ' is not supported');
         }
       }
 
