@@ -28,19 +28,22 @@ describe('UITableView', function () {
 
   beforeEach(module("mallzee.ui-table-view"));
 
+  function generateList(array, length) {
+    for (var i = 0; i < length; i++) {
+      array.push({
+        id: i,
+        name: 'Name ' + i,
+        detail: 'Detail ' + i
+      });
+    }
+  }
   function initialiseWithListSet () {
 
     inject(function ($compile, $rootScope, $document, $timeout) {
       var $scope = $rootScope.$new();
       $scope.list = [];
 
-      for (var i = 0; i < numberOfItems; i++) {
-        $scope.list.push({
-          id: i,
-          name: 'Name ' + i,
-          detail: 'Detail ' + i
-        });
-      }
+      generateList($scope.list, numberOfItems);
 
       $scope.bottomTrigger = function () {  };
       $scope.topTrigger = function () {  };
@@ -469,6 +472,23 @@ describe('UITableView', function () {
       });
     });
 
+  });
+
+  describe('changing list', function () {
+
+    beforeEach(function () {
+      initialiseWithListSet();
+    });
+
+    it('should have a new list with 500 list items', function () {
+      var newList = [];
+      generateList(newList, 500);
+
+      scope.list = newList;
+      scope.$digest();
+
+      expect(wrapper.prop('clientHeight')).to.equal(50000);
+    });
   });
 
   describe('deleting items', function () {

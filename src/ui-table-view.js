@@ -82,9 +82,7 @@
           direction: SCROLL_DOWN,
           directionChange: false
         },
-        _scroll,
-      // TODO _scroll = angular.copy(scroll);
-
+        _scroll, // Previous tick data
 
         metadata = {
           $$position: 0,
@@ -106,7 +104,7 @@
           deadZone: EDGE_TOP,
           deadZoneChange: false
         },
-        _view,
+        _view, // Previous tick data
 
       // Information about the buffer status
         buffer = {
@@ -126,7 +124,7 @@
           distance: 0,    // How many elements of the buffer are out of view. Used to calculate the distance moved on a direction change
           reset: false
         },
-        _buffer;
+        _buffer; // Previous tick data
 
 
       return {
@@ -150,28 +148,16 @@
           // Make the buffered items available on the scope
           scope.items = items;
 
-          scope.addItem = function (item) {
-            $log.debug('Add item', item);
-          };
-
           scope.deleteItem = function (index) {
-            $log.debug('Delete item @ ', index);
-
             // Remove the item from the list
             list.splice(index, 1);
 
             // If we're at the bottom edge of the buffer.
             // We need to reduce the buffer indexes by the amount deleted
             if (buffer.atEdge === EDGE_BOTTOM) {
-              $log.debug('Deleting from the bottom edge');
               buffer.top--;
               buffer.bottom--;
             }
-
-            //drawBuffer();
-            //positionElements();
-            // Update the wrapper size
-            //calculateWrapper();
           };
 
           wrapper.el.css('position', 'relative');
@@ -180,7 +166,9 @@
           initialise(scope, attributes);
 
           // The master list of items has changed. Recalculate the virtual list
-          scope.$watchCollection('list', function (items) {
+          scope.$watchCollection('list', function (newList) {
+            list = newList;
+            calculateWrapper();
             drawBuffer();
           });
 
@@ -274,7 +262,6 @@
 
         for (var i = 0; i < items.length; i++) {
           items[i].$$position = i;
-          $log.debug('Adding position', items[i].$$position)
         }
 
         drawBuffer();
@@ -290,12 +277,10 @@
         }
 
         var position = getRelativeBufferPosition(buffer.top);
-        $log.debug('Drawing list from', position, buffer.top, buffer.bottom);
 
         for (var i = buffer.top; i <= buffer.bottom; i++) {
           var pos = getRelativeBufferPosition(i);
 
-          $log.debug('Extending', pos, items[pos], list[i]);
           angular.extend(items[pos], list[i]);
 
           items[pos].$$index = i;
@@ -382,7 +367,6 @@
         angular.extend(_scroll, scroll);
         angular.extend(_view, view);
         angular.extend(_buffer, buffer);
-        $log.debug('Setup next tick', scroll.y, buffer.top, buffer.bottom, buffer.yTop, buffer.yBottom);
       }
 
       /**
@@ -392,7 +376,6 @@
         $timeout(function () {
           elements = container.el.children().children();
           for (var i = buffer.top; i < buffer.size; i++) {
-            $log.debug('Positioning element', i, buffer.top, buffer.size);
 
             var el = angular.element(elements[getRelativeBufferPosition(i)]);
             el.css({
@@ -426,10 +409,6 @@
        * Calculates if a render is required.
        */
       function isRenderRequired () {
-        $log.debug('Render required?', scroll.direction, scroll.directionChange,
-          view.deadZone, view.deadZoneChange, buffer.atEdge, view.ytChange,
-          view.ybChange);
-
         return(
           ((scroll.direction === SCROLL_UP && buffer.atEdge !== EDGE_TOP && view.deadZone === false) && (scroll.directionChange || view.ytChange)) ||
             ((scroll.direction === SCROLL_DOWN && buffer.atEdge !== EDGE_BOTTOM && view.deadZone === false) && (scroll.directionChange || view.ybChange)) || !(view.deadZone !== false && view.deadZoneChange === false)
@@ -437,7 +416,6 @@
       }
 
       function isTriggerRequired () {
-        $log.debug('Trigger required?', view.triggerZone, view.triggerZoneChange);
         return (
           (view.triggerZone !== false && view.triggerZoneChange)
           );
@@ -490,7 +468,6 @@
         view.atEdge = !(view.top > 0 && view.bottom < list.length - 1);
 
         // Calculate if we're in a trigger zone and if there's been a change.
-        $log.debug(scroll.y, container.height, view.yTop, view.yBottom, list.length, trigger.distance, row.height);
         view.triggerZone = (view.yTop < trigger.distance * row.height) ? EDGE_TOP : view.yBottom > ((list.length - trigger.distance - 1) * row.height) ? EDGE_BOTTOM : false;
         view.triggerZoneChange = (view.triggerZone !== _view.triggerZone);
 
@@ -501,8 +478,6 @@
         // Calculate if there have been index changes on either side of the view
         view.ytChange = (view.top !== _view.top);
         view.ybChange = (view.bottom !== _view.bottom);
-
-        $log.debug('Updated view model', view.yTop, view.yBottom, container.height, scroll.y);
       };
 
       /**
@@ -511,7 +486,6 @@
        * @param edge
        */
       function setBufferToIndex (index) {
-        $log.debug('Setting buffer to index', index);
         buffer.top = index;
         buffer.bottom = buffer.top + buffer.size;
         validateBuffer();
@@ -541,11 +515,10 @@
             buffer.bottom = index + buffer.size - 1;
             break;
           default:
-            $log.debug('We only know how to deal with scrolling on the y axis for now');
+            $log.warn('We only know how to deal with scrolling on the y axis for now');
             break;
         }
         validateBuffer();
-        $log.debug('Updated buffer model', index, buffer.top, buffer.bottom, buffer.atEdge);
       }
 
 
@@ -558,7 +531,6 @@
 
         var itemsToMerge = list.slice(start, end + 1),
           px = start * row.height;
-        $log.debug('Slicing up', start, end, getRelativeBufferPosition(end), px, itemsToMerge.length);
 
         for (var i = itemsToMerge.length - 1; i >= 0; i--) {
           var position = getRelativeBufferPosition(end),
@@ -566,7 +538,7 @@
 
           itemsToMerge[i].$$top = top;
           itemsToMerge[i].$$index = end--;
-          $log.debug('Extending', position, top, items[position], 'with', itemsToMerge[i]);
+
           angular.extend(items[position], itemsToMerge[i]);
           renderElement(position, top);
         }
@@ -582,15 +554,13 @@
         var itemsToMerge = list.slice(start, end + 1),
           px = start * row.height;
 
-        $log.debug('Slicing down', start, end, getRelativeBufferPosition(start), px, itemsToMerge.length);
-
         for (var i = 0; i < itemsToMerge.length; i++) {
           var position = getRelativeBufferPosition(start + i),
             top = px + (row.height * i);
 
           itemsToMerge[i].$$top = top;
           itemsToMerge[i].$$index = start + i;
-          $log.debug('Extending', position, top, items[position], 'with', itemsToMerge[i]);
+
           angular.extend(items[position], itemsToMerge[i]);
           renderElement(position, top);
         }
@@ -643,7 +613,6 @@
        */
       function renderElement (index, y) {
         var element = angular.element(elements[index]);
-        $log.debug('Rendering element', index, 'at y:', y, element);
         element.css('-webkit-transform', 'translateY(' + y + 'px)');
       }
 
@@ -651,7 +620,6 @@
        * Trigger a function supplied to the directive
        */
       function triggerEdge () {
-        $log.debug('Trigger edge', view.triggerZone);
         switch (view.triggerZone) {
           case EDGE_TOP:
             triggerTop();
@@ -660,7 +628,7 @@
             triggerBottom();
             break;
           default:
-            $log.debug('Zone ' + view.triggerZone + ' is not supported');
+            $log.warn('Zone ' + view.triggerZone + ' is not supported');
         }
       }
 
