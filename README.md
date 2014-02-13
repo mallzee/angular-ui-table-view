@@ -1,5 +1,5 @@
 
-[![Build Status](https://travis-ci.org/mallzee/angular-ui-table-view.png?branch=master)](https://travis-ci.org/mallzee/angular-ui-table-view)[ ![Codeship Status for mallzee/angular-ui-table-view](https://www.codeship.io/projects/6e488550-7091-0131-b629-6a793a0a9a66/status?branch=master)](https://www.codeship.io/projects/13414)
+[ ![Codeship Status for mallzee/angular-ui-table-view](https://www.codeship.io/projects/6e488550-7091-0131-b629-6a793a0a9a66/status?branch=master)](https://www.codeship.io/projects/13414)
 
 # AngularJS UITableView - WIP
 
@@ -20,7 +20,7 @@ Add the required files to your projects `index.html` file
 
 ```HTML
 <link rel="stylesheet" href="bower_components/angular-ui-table-view/dist/ui-table-view.css" />
-<script src="bower_components/angular-ui-table-view/dist/ui-table-view.min.js"></script>
+<script src="bower_components/angular-ui-table-view/dist/ui-table-view.js"></script>
 ```
 
 Add the `mallzee.ui-table-view` module to your application
@@ -29,17 +29,15 @@ Add the `mallzee.ui-table-view` module to your application
     
 Use the following directive to turn your ng-repeats into super performant lists. Instead of using your big array in the ng-repeat directive. Use it as a parameter to the mlz-ui-table-view directive. 
 
-This then generates a small list of items (the size of the buffer set) that it will manage and keep track of so it doesn't kill the performance of your device. It creates an array called `tableView.buffer.items` which you should use in your ng-repeat directive and track by the $$position variable. This is to stop the DOM elements switching out when items are replaced in the array. 
+This then generates a small list of items (the size of the buffer set) that it will manage and keep track of so it doesn't kill the performance of your device. It creates an array called `items` which you should use in your ng-repeat directive and track by the $$position variable. This is to stop the DOM elements switching out when items are replaced in the array.
 
 ```HTML
-<div mlz-ui-table-view="items" mlz-ui-table-view-row-height="100" mlz-ui-table-view-buffer="20">
-    <div class="mlz-ui-table-view-wrapper">
-        <div ng-repeat="item in tableView.buffer.items track by item.$$position">
-            <dt ng-bind="item.name"></dt>
-            <dd ng-bind="item.details"></dd>
-        </div>
+<mlz-ui-table-view list="list" row-height="100" view-buffer="20">
+    <div ng-repeat="item in items track by item.$$position">
+        <dt ng-bind="item.name"></dt>
+        <dd ng-bind="item.details"></dd>
     </div>
-</div>
+</mlz-ui-table-view>
 ```
 
 # How does it work?

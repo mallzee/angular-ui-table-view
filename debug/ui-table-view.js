@@ -44,6 +44,8 @@
           width: ROW_WIDTH
         },
 
+        columns = 1,
+
         trigger = {
           distance: TRIGGER_DISTANCE
         },
@@ -215,6 +217,10 @@
           buffer.size = +attributes.bufferSize;
         }
 
+        if (attributes.columns) {
+          columns = +attributes.columns;
+        }
+
         // Setup trigger functions for the directive
         if (attributes.triggerTop) {
           triggerTop = function () {
@@ -234,9 +240,6 @@
         createBuffer();
 
         positionElements();
-
-        $log.debug('Scroller initialised', container.height, buffer.size, buffer.distance, view.size,
-          row.height, list.length, items.length);
       }
 
       /**
@@ -276,31 +279,26 @@
           return false;
         }
 
-        var position = getRelativeBufferPosition(buffer.top);
-
         for (var i = buffer.top; i <= buffer.bottom; i++) {
-          var pos = getRelativeBufferPosition(i);
+          var p = getRelativeBufferPosition(i),
+            x = (p % columns) * (container.width / columns),
+            y = (i - (p % columns)) * row.height;
 
-          angular.extend(items[pos], list[i]);
+          angular.extend(items[p], list[i]);
 
-          items[pos].$$index = i;
-          items[pos].$$height = row.height;
-          items[pos].$$top = row.height * i;
-          items[pos].$$visible = false;
+
+          items[p].$$index = i;
+          items[p].$$height = row.height;
+          items[p].$$top = y;
+          items[p].$$visible = false;
           //items[pos].$$position = pos;
 
-          renderElement(pos, row.height * i);
+          renderElement(p, x, y);
 
           if (i < view.size) {
             items[i].$$visible = true;
           }
-
-          position++;
-          if (position >= items.length) {
-            position = 0;
-          }
         }
-
         calculateWrapper();
       }
 
@@ -375,14 +373,17 @@
       function positionElements () {
         $timeout(function () {
           elements = container.el.children().children();
-          for (var i = buffer.top; i < buffer.size; i++) {
+          for (var i = buffer.top; i < (buffer.top + buffer.size); i++) {
 
-            var el = angular.element(elements[getRelativeBufferPosition(i)]);
+            var p = getRelativeBufferPosition(i),
+                x = (p % columns) * (container.width / columns),
+                y = (i - (p % columns)) * row.height,
+                el = angular.element(elements[p]);
+
             el.css({
-              position: 'absolute',
-              width: '100%',
-              height: row.height + 'px',
-              webkitTransform: 'translateY(' + i * row.height + 'px)'
+                position: 'absolute',
+                height: row.height + 'px',
+                webkitTransform: 'translate3d(' + x + 'px, ' + y + 'px, 0px)'
             });
           }
         });
@@ -534,13 +535,14 @@
 
         for (var i = itemsToMerge.length - 1; i >= 0; i--) {
           var position = getRelativeBufferPosition(end),
-            top = px + (row.height * i);
+            y = px + (row.height * (i - position % columns)),
+            x = (position % columns) * (container.width / columns);
 
-          itemsToMerge[i].$$top = top;
+          itemsToMerge[i].$$top = y;
           itemsToMerge[i].$$index = end--;
 
           angular.extend(items[position], itemsToMerge[i]);
-          renderElement(position, top);
+          renderElement(position, x, y);
         }
       }
 
@@ -556,13 +558,14 @@
 
         for (var i = 0; i < itemsToMerge.length; i++) {
           var position = getRelativeBufferPosition(start + i),
-            top = px + (row.height * i);
+            y = px + (row.height * (i - position % columns)),
+            x = (position % columns) * (container.width / columns);
 
-          itemsToMerge[i].$$top = top;
+          itemsToMerge[i].$$top = y;
           itemsToMerge[i].$$index = start + i;
 
           angular.extend(items[position], itemsToMerge[i]);
-          renderElement(position, top);
+          renderElement(position, x, y);
         }
       }
 
@@ -611,9 +614,10 @@
        * @param index
        * @param y
        */
-      function renderElement (index, y) {
+      function renderElement (index, x, y) {
+
         var element = angular.element(elements[index]);
-        element.css('-webkit-transform', 'translateY(' + y + 'px)');
+        element.css('-webkit-transform', 'translate3d(' + x + 'px, ' + y + 'px, 0px)');
       }
 
       /**

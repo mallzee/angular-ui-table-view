@@ -7,8 +7,6 @@ angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', func
 
   $scope.list = [];
 
-  console.log('Populating items');
-
   for (var i = 0; i < 1000; i++) {
     $scope.list.push({
       id: i,

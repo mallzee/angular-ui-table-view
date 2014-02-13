@@ -97,7 +97,7 @@ describe('UITableView', function () {
       var el = angular.element(elements[pos]);
 
       expect(scope.items[pos].$$position, 'element id ' + pos).to.equal(pos);
-      expect(el.css('-webkit-transform'), 'transform element' + pos).to.equal('translateY(' + index * rowHeight + 'px)');
+      expect(el.css('-webkit-transform'), 'transform element' + pos).to.equal('translate3d(0px, ' + index * rowHeight + 'px, 0px)');
       index++;
     }
   }
