@@ -44,6 +44,8 @@
           width: ROW_WIDTH
         },
 
+        columns = 1,
+
         trigger = {
           distance: TRIGGER_DISTANCE
         },
@@ -82,9 +84,7 @@
           direction: SCROLL_DOWN,
           directionChange: false
         },
-        _scroll,
-      // TODO _scroll = angular.copy(scroll);
-
+        _scroll, // Previous tick data
 
         metadata = {
           $$position: 0,
@@ -106,7 +106,7 @@
           deadZone: EDGE_TOP,
           deadZoneChange: false
         },
-        _view,
+        _view, // Previous tick data
 
       // Information about the buffer status
         buffer = {
@@ -126,7 +126,7 @@
           distance: 0,    // How many elements of the buffer are out of view. Used to calculate the distance moved on a direction change
           reset: false
         },
-        _buffer;
+        _buffer; // Previous tick data
 
 
       return {
@@ -151,7 +151,6 @@
           scope.items = items;
 
           scope.deleteItem = function (index) {
-
             // Remove the item from the list
             list.splice(index, 1);
 
@@ -161,11 +160,6 @@
               buffer.top--;
               buffer.bottom--;
             }
-
-            //drawBuffer();
-            //positionElements();
-            // Update the wrapper size
-            //calculateWrapper();
           };
 
           wrapper.el.css('position', 'relative');
@@ -174,7 +168,9 @@
           initialise(scope, attributes);
 
           // The master list of items has changed. Recalculate the virtual list
-          scope.$watchCollection('list', function (items) {
+          scope.$watchCollection('list', function (newList) {
+            list = newList;
+            calculateWrapper();
             drawBuffer();
           });
 
@@ -219,6 +215,10 @@
 
         if (attributes.bufferSize) {
           buffer.size = +attributes.bufferSize;
+        }
+
+        if (attributes.columns) {
+          columns = +attributes.columns;
         }
 
         // Setup trigger functions for the directive
@@ -279,31 +279,26 @@
           return false;
         }
 
-        var position = getRelativeBufferPosition(buffer.top);
-
         for (var i = buffer.top; i <= buffer.bottom; i++) {
-          var pos = getRelativeBufferPosition(i);
+          var p = getRelativeBufferPosition(i),
+            x = (p % columns) * (container.width / columns),
+            y = (i - (p % columns)) * row.height;
 
-          angular.extend(items[pos], list[i]);
+          angular.extend(items[p], list[i]);
 
-          items[pos].$$index = i;
-          items[pos].$$height = row.height;
-          items[pos].$$top = row.height * i;
-          items[pos].$$visible = false;
+
+          items[p].$$index = i;
+          items[p].$$height = row.height;
+          items[p].$$top = y;
+          items[p].$$visible = false;
           //items[pos].$$position = pos;
 
-          renderElement(pos, row.height * i);
+          renderElement(p, x, y);
 
           if (i < view.size) {
             items[i].$$visible = true;
           }
-
-          position++;
-          if (position >= items.length) {
-            position = 0;
-          }
         }
-
         calculateWrapper();
       }
 
@@ -378,14 +373,17 @@
       function positionElements () {
         $timeout(function () {
           elements = container.el.children().children();
-          for (var i = buffer.top; i < buffer.size; i++) {
+          for (var i = buffer.top; i < (buffer.top + buffer.size); i++) {
 
-            var el = angular.element(elements[getRelativeBufferPosition(i)]);
+            var p = getRelativeBufferPosition(i),
+                x = (p % columns) * (container.width / columns),
+                y = (i - (p % columns)) * row.height,
+                el = angular.element(elements[p]);
+
             el.css({
-              position: 'absolute',
-              width: '100%',
-              height: row.height + 'px',
-              webkitTransform: 'translateY(' + i * row.height + 'px)'
+                position: 'absolute',
+                height: row.height + 'px',
+                webkitTransform: 'translate3d(' + x + 'px, ' + y + 'px, 0px)'
             });
           }
         });
@@ -418,10 +416,6 @@
           );
       }
 
-      /**
-       * Calculates if a trigger is required
-       * @returns {boolean|*}
-       */
       function isTriggerRequired () {
         return (
           (view.triggerZone !== false && view.triggerZoneChange)
@@ -485,7 +479,6 @@
         // Calculate if there have been index changes on either side of the view
         view.ytChange = (view.top !== _view.top);
         view.ybChange = (view.bottom !== _view.bottom);
-
       };
 
       /**
@@ -542,13 +535,14 @@
 
         for (var i = itemsToMerge.length - 1; i >= 0; i--) {
           var position = getRelativeBufferPosition(end),
-            top = px + (row.height * i);
+            y = px + (row.height * (i - position % columns)),
+            x = (position % columns) * (container.width / columns);
 
-          itemsToMerge[i].$$top = top;
+          itemsToMerge[i].$$top = y;
           itemsToMerge[i].$$index = end--;
 
           angular.extend(items[position], itemsToMerge[i]);
-          renderElement(position, top);
+          renderElement(position, x, y);
         }
       }
 
@@ -564,13 +558,14 @@
 
         for (var i = 0; i < itemsToMerge.length; i++) {
           var position = getRelativeBufferPosition(start + i),
-            top = px + (row.height * i);
+            y = px + (row.height * (i - position % columns)),
+            x = (position % columns) * (container.width / columns);
 
-          itemsToMerge[i].$$top = top;
+          itemsToMerge[i].$$top = y;
           itemsToMerge[i].$$index = start + i;
 
           angular.extend(items[position], itemsToMerge[i]);
-          renderElement(position, top);
+          renderElement(position, x, y);
         }
       }
 
@@ -619,9 +614,10 @@
        * @param index
        * @param y
        */
-      function renderElement (index, y) {
+      function renderElement (index, x, y) {
+
         var element = angular.element(elements[index]);
-        element.css('-webkit-transform', 'translateY(' + y + 'px)');
+        element.css('-webkit-transform', 'translate3d(' + x + 'px, ' + y + 'px, 0px)');
       }
 
       /**

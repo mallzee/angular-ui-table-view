@@ -54,7 +54,7 @@ module.exports = function(grunt) {
 				},
         build: {
           src: ['src/ui-table-view.js'],
-          dest: 'debug/ui-table-view.js'
+          dest: 'dist/ui-table-view.js'
         }
 			},
 			jshint: {
@@ -102,7 +102,7 @@ module.exports = function(grunt) {
 				},
 				build: {
 					files:  {},
-					src:    'debug/ui-table-view.js',
+					src:    'dist/ui-table-view.js',
 					dest:   'dist/ui-table-view.min.js'
 				}
 			},
