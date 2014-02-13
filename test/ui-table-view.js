@@ -7,8 +7,7 @@ describe('UITableView', function () {
 
     container,
     wrapper,
-    elements,
-    tv;
+    elements;
 
   var numberOfItems = 1000,
     rowHeight = 100,
@@ -524,6 +523,38 @@ describe('UITableView', function () {
       expect(scope.items[8].$$top).to.equal(800);
       expect(scope.items[9].id).to.equal(10);
       expect(scope.items[9].$$top).to.equal(900);
+
+    });
+
+
+    it('should remove an item from the bottom', function () {
+      scrollToIndex(990);
+      scope.deleteItem(999);
+      scope.$digest();
+
+      expect(scope.list.length).to.equal(999);
+      expect(wrapper.prop('clientHeight')).to.equal(99900);
+      //expect(scope.list[0].id).to.equal(900);
+      expect(scope.items[0].id).to.equal(990);
+      expect(scope.items[0].$$top).to.equal(99000);
+      expect(scope.items[1].id).to.equal(991);
+      expect(scope.items[1].$$top).to.equal(99100);
+      expect(scope.items[2].id).to.equal(992);
+      expect(scope.items[2].$$top).to.equal(99200);
+      expect(scope.items[3].id).to.equal(993);
+      expect(scope.items[3].$$top).to.equal(99300);
+      expect(scope.items[4].id).to.equal(994);
+      expect(scope.items[4].$$top).to.equal(99400);
+      expect(scope.items[5].id).to.equal(995);
+      expect(scope.items[5].$$top).to.equal(99500);
+      expect(scope.items[6].id).to.equal(996);
+      expect(scope.items[6].$$top).to.equal(99600);
+      expect(scope.items[7].id).to.equal(997);
+      expect(scope.items[7].$$top).to.equal(99700);
+      expect(scope.items[8].id).to.equal(998);
+      expect(scope.items[8].$$top).to.equal(99800);
+      expect(scope.items[9].id).to.equal(989);
+      expect(scope.items[9].$$top).to.equal(98900);
 
     });
   });

@@ -1,7 +1,7 @@
 <div ng-controller='TableViewCtrl'>
     <h1>UI Table View Demo</h1>
     <h2>Items length: {{list.length}}</h2>
-    <mlz-ui-table-view list="list" style="width:640px; height: 455px; border: 1px solid #eee" row-height="100" buffer-size="10" columns="2">
+    <mlz-ui-table-view list="list" style="width:640px; height: 455px; border: 1px solid #eee" row-height="100" buffer-size="5" columns="2">
         <div id="{{item.$$position}}" ng-repeat="item in items track by item.$$position">
             <dt ng-bind="item.name"></dt>
             <dd ng-bind="item.details"></dd>

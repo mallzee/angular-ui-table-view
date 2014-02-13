@@ -11,7 +11,7 @@
   angular.module('mallzee.ui-table-view', [])
     .directive('mlzUiTableView', ['$window', '$timeout', '$log', function ($window, $timeout, $log) {
 
-      var BUFFER_SIZE = 20,
+      var BUFFER_SIZE = 10,
         ROW_HEIGHT = 40,
         ROW_WIDTH = '100%',
         EDGE_TOP = 'top',
@@ -64,9 +64,9 @@
           // Y-Axis
           y: 0,
           yDelta: 0,
-          yIndex: 0,
           yDistance: 0,
           yChange: false, // Marks when we have scrolled to a new index
+          row: 0, // Which row we are currently on
 
           // Track which item we are on
           // topIndex: 0, // Mark the topIndex we are heading for
@@ -151,12 +151,14 @@
           scope.items = items;
 
           scope.deleteItem = function (index) {
+            //console.log('Deleting ' + index, buffer);
             // Remove the item from the list
             list.splice(index, 1);
 
             // If we're at the bottom edge of the buffer.
             // We need to reduce the buffer indexes by the amount deleted
             if (buffer.atEdge === EDGE_BOTTOM) {
+              //console.log('Delete on bottom edge');
               buffer.top--;
               buffer.bottom--;
             }
@@ -169,7 +171,11 @@
 
           // The master list of items has changed. Recalculate the virtual list
           scope.$watchCollection('list', function (newList) {
-            list = newList;
+            if (newList) {
+              list = newList;
+            } else {
+              $log.warn('Trying to remove the list completely');
+            }
             calculateWrapper();
             drawBuffer();
           });
@@ -213,12 +219,13 @@
           row.height = +attributes.rowHeight;
         }
 
-        if (attributes.bufferSize) {
-          buffer.size = +attributes.bufferSize;
-        }
-
         if (attributes.columns) {
           columns = +attributes.columns;
+        }
+
+        if (attributes.bufferSize) {
+          buffer.rows = +attributes.bufferSize;
+          buffer.size = buffer.rows * columns;
         }
 
         // Setup trigger functions for the directive
@@ -261,7 +268,7 @@
           return false;
         }
 
-        angular.copy(list.slice(buffer.top, buffer.bottom + 1), items);
+        angular.copy(list.slice(buffer.top, buffer.bottom), items);
 
         for (var i = 0; i < items.length; i++) {
           items[i].$$position = i;
@@ -279,15 +286,29 @@
           return false;
         }
 
-        for (var i = buffer.top; i <= buffer.bottom; i++) {
-          var p = getRelativeBufferPosition(i),
-            x = (p % columns) * (container.width / columns),
-            y = (i - (p % columns)) * row.height;
+        var p, x, y, el, e, r = buffer.top - 1;
 
-          angular.extend(items[p], list[i]);
+        for (var i = 0; i < buffer.size; i++) {
+
+          e = (buffer.top * columns) + i;
+          p = getRelativeBufferPosition(e);
+
+          (p % columns === 0) ? r++ : null ;
+
+          x = (p % columns) * (container.width / columns);
+          y = r * row.height;
+          el = angular.element(elements[p]);
+
+          if (e >= list.length) {
+            hideElement(p);
+          } else {
+            showElement(p);
+          }
+          //console.log('Merging', list[e], 'with', items[p]);
+          angular.extend(items[p], list[e]);
 
 
-          items[p].$$index = i;
+          items[p].$$index = e;
           items[p].$$height = row.height;
           items[p].$$top = y;
           items[p].$$visible = false;
@@ -334,10 +355,8 @@
         // Update the buffer model
         updateBufferModel();
 
-        // Update the DOM based on the models
-        if (isRenderRequired()) {
-          render();
-        }
+        // Render the current buffer
+        render();
 
         // Do we need to call one of the edge trigger because we're in the zone?
         if (isTriggerRequired()) {
@@ -373,18 +392,25 @@
       function positionElements () {
         $timeout(function () {
           elements = container.el.children().children();
+
+          var p, x, y, el, r = buffer.top - 1;
+
           for (var i = buffer.top; i < (buffer.top + buffer.size); i++) {
 
-            var p = getRelativeBufferPosition(i),
-                x = (p % columns) * (container.width / columns),
-                y = (i - (p % columns)) * row.height,
-                el = angular.element(elements[p]);
+            p = getRelativeBufferPosition(i);
+
+            (p % columns === 0) ? r++ : null ;
+
+            x = (p % columns) * (container.width / columns);
+            y = r * row.height;
+            el = angular.element(elements[p]);
 
             el.css({
                 position: 'absolute',
                 height: row.height + 'px',
                 webkitTransform: 'translate3d(' + x + 'px, ' + y + 'px, 0px)'
             });
+
           }
         });
       }
@@ -394,32 +420,31 @@
         // we need to adjust the buffer accordingly
         if (buffer.top < 0) {
           buffer.top = 0;
-          buffer.bottom = buffer.size - 1;
+          buffer.bottom = buffer.size / columns;
         } else if (buffer.bottom >= list.length) {
-          buffer.top = list.length - buffer.size;
-          buffer.bottom = list.length - 1;
+          buffer.top = (list.length - buffer.size) / columns;
+          buffer.bottom = list.length / columns;
         }
 
         // Update the extra properties of the buffer
         buffer.yTop = buffer.top * row.height;
-        buffer.yBottom = (buffer.bottom + 1) * row.height;
-        buffer.atEdge = (buffer.top <= 0) ? EDGE_TOP : (buffer.bottom >= list.length - 1) ? EDGE_BOTTOM : false;
+        buffer.yBottom = buffer.bottom * row.height;
+        buffer.atEdge = (buffer.top <= 0) ? EDGE_TOP : (buffer.bottom >= list.length) ? EDGE_BOTTOM : false;
       }
 
       /**
        * Calculates if a render is required.
        */
       function isRenderRequired () {
+        //console.log('Render required?', (scroll.direction === SCROLL_DOWN && buffer.atEdge !== EDGE_BOTTOM && view.deadZone === false) && (scroll.directionChange || view.ytChange), !(view.deadZone !== false && view.deadZoneChange === false), view.deadZone, view.deadZoneChange);
         return(
           ((scroll.direction === SCROLL_UP && buffer.atEdge !== EDGE_TOP && view.deadZone === false) && (scroll.directionChange || view.ytChange)) ||
-            ((scroll.direction === SCROLL_DOWN && buffer.atEdge !== EDGE_BOTTOM && view.deadZone === false) && (scroll.directionChange || view.ybChange)) || !(view.deadZone !== false && view.deadZoneChange === false)
+            ((scroll.direction === SCROLL_DOWN && buffer.atEdge !== EDGE_BOTTOM && view.deadZone === false) && (scroll.directionChange || view.ytChange)) || !(view.deadZone !== false && view.deadZoneChange === false)
           );
       }
 
       function isTriggerRequired () {
-        return (
-          (view.triggerZone !== false && view.triggerZoneChange)
-          );
+        return (view.triggerZone !== false && view.triggerZoneChange);
       }
 
       /**
@@ -432,17 +457,17 @@
         scroll.yDelta = y - _scroll.y;
 
         // Update indexes
-        scroll.yIndex = Math.floor(y / row.height);
+        scroll.row = Math.floor(y / row.height);
 
-        if (scroll.yIndex < 0) {
-          scroll.yIndex = 0;
+        if (scroll.row < 0) {
+          scroll.row = 0;
         }
 
-        if (scroll.yIndex >= list.length) {
-          scroll.yIndex = list.length - 1;
+        if (scroll.row >= list.length) {
+          scroll.row = list.length - 1;
         }
 
-        scroll.yDistance = Math.abs(scroll.yIndex - _scroll.yIndex);
+        scroll.yDistance = Math.abs(scroll.row - _scroll.row);
         scroll.yChange = (scroll.yDistance > 0);
 
         // scroll.bottomIndex = Math.abs(Math.floor((container.height + y) / row.height));
@@ -461,10 +486,10 @@
        */
       function updateViewModel () {
 
-        //view.bottom = scroll.yIndex + view.size - 1;
+        //view.bottom = scroll.row + view.size - 1;
         view.yTop = scroll.y;
         view.yBottom = scroll.y + container.height;
-        view.top = scroll.yIndex;
+        view.top = scroll.row;
         view.bottom = Math.floor(view.yBottom / row.height);
         view.atEdge = !(view.top > 0 && view.bottom < list.length - 1);
 
@@ -479,6 +504,7 @@
         // Calculate if there have been index changes on either side of the view
         view.ytChange = (view.top !== _view.top);
         view.ybChange = (view.bottom !== _view.bottom);
+        //console.log('View model', view.top, view.bottom, view.size, buffer.size);
       };
 
       /**
@@ -501,7 +527,7 @@
        */
       function updateBufferModel () {
 
-        var index = scroll.yIndex,
+        var index = scroll.row,
           direction = scroll.direction,
           distance = buffer.distance;
 
@@ -509,11 +535,11 @@
         switch (direction) {
           case SCROLL_UP:
             buffer.top = index - distance;
-            buffer.bottom = (index - distance) + (buffer.size - 1);
+            buffer.bottom = (index - distance) + (buffer.size / columns);
             break;
           case SCROLL_DOWN:
             buffer.top = index;
-            buffer.bottom = index + buffer.size - 1;
+            buffer.bottom = index + (buffer.size / columns);
             break;
           default:
             $log.warn('We only know how to deal with scrolling on the y axis for now');
@@ -528,21 +554,35 @@
        * @param start
        * @param end
        */
-      function scrollingUp (start, end) {
+      function scrollingUp (start, distance) {
 
-        var itemsToMerge = list.slice(start, end + 1),
-          px = start * row.height;
+        var itemsToMerge = list.slice((start * columns), (start * columns) + distance),
+          end = (start + distance) - 1;
+
+        var p, x, y, r = start + (distance / columns) - 1;
 
         for (var i = itemsToMerge.length - 1; i >= 0; i--) {
-          var position = getRelativeBufferPosition(end),
+
+
+          p = getRelativeBufferPosition((start * columns) + i);
+
+
+          x = (p % columns) * (container.width / columns);
+          y = r * row.height;
+
+          /*var position = getRelativeBufferPosition(end),
             y = px + (row.height * (i - position % columns)),
-            x = (position % columns) * (container.width / columns);
+            x = (position % columns) * (container.width / columns);*/
+//console.log('Scrolling up', end, distance, p, i, r, x, y, buffer.distance, view.size);
 
           itemsToMerge[i].$$top = y;
-          itemsToMerge[i].$$index = end--;
+          itemsToMerge[i].$$index = start * columns + i;
 
-          angular.extend(items[position], itemsToMerge[i]);
-          renderElement(position, x, y);
+          angular.extend(items[p], itemsToMerge[i]);
+          renderElement(p, x, y);
+
+          (p % columns === 0) ? r-- : null ;
+
         }
       }
 
@@ -551,21 +591,28 @@
        * @param start
        * @param end
        */
-      function scrollingDown (start, end) {
+      function scrollingDown (start, distance) {
 
-        var itemsToMerge = list.slice(start, end + 1),
-          px = start * row.height;
+        var itemsToMerge = list.slice((start * columns), (start * columns) + distance);
+        var p, x, y, r = start - 1;
 
         for (var i = 0; i < itemsToMerge.length; i++) {
-          var position = getRelativeBufferPosition(start + i),
-            y = px + (row.height * (i - position % columns)),
-            x = (position % columns) * (container.width / columns);
+
+          p = getRelativeBufferPosition((start * columns) + i);
+
+          (p % columns === 0) ? r++ : null ;
+
+          x = (p % columns) * (container.width / columns);
+          y = r * row.height;
+
+//console.log('Scrolling down', start, distance, p, i, x, y, r);
 
           itemsToMerge[i].$$top = y;
-          itemsToMerge[i].$$index = start + i;
+          itemsToMerge[i].$$index = start * columns + i;
+          //console.log('Merging', itemsToMerge[i], 'with', items[p]);
 
-          angular.extend(items[position], itemsToMerge[i]);
-          renderElement(position, x, y);
+          angular.extend(items[p], itemsToMerge[i]);
+          renderElement(p, x, y);
         }
       }
 
@@ -574,21 +621,28 @@
        */
       function render () {
 
-        var start, end;
+        var start, end, distance;
+
+
+        // Update the DOM based on the models
+        if (!isRenderRequired()) {
+          return;
+        }
 
         if (buffer.reset) {
           // Reset the buffer to this ticks window
           start = buffer.top;
           end = buffer.bottom;
+          distance = (end - start) * columns;
 
           // If we've changed the scroll direction.
           // Update the buffer to reflect the direction.
           switch (scroll.direction) {
             case SCROLL_UP:
-              scrollingUp(start, end);
+              scrollingUp(start, distance);
               break;
             case SCROLL_DOWN:
-              scrollingDown(start, end);
+              scrollingDown(start, distance);
               break;
           }
         } else {
@@ -597,13 +651,17 @@
           switch (scroll.direction) {
             case SCROLL_UP:
               start = buffer.top;
-              end = _buffer.top - 1;
-              scrollingUp(start, end);
+              end = _buffer.top;
+              distance = Math.abs((end - start) * columns);
+              //console.log('Distance up', distance, start, end, columns, buffer.top, buffer.bottom);
+              scrollingUp(start, distance);
               break;
             case SCROLL_DOWN:
-              start = _buffer.bottom + 1;
+              start = _buffer.bottom;
               end = buffer.bottom;
-              scrollingDown(start, end);
+              distance = Math.abs((end - start) * columns);
+              //console.log('Distance down', distance, start, end, columns, buffer.top, buffer.bottom);
+              scrollingDown(start, distance);
               break;
           }
         }
@@ -617,9 +675,27 @@
       function renderElement (index, x, y) {
 
         var element = angular.element(elements[index]);
+        //console.log('Rendering element', index, x, y);
         element.css('-webkit-transform', 'translate3d(' + x + 'px, ' + y + 'px, 0px)');
       }
 
+      /**
+       * Hide an element
+       * @param index
+       */
+      function hideElement (index) {
+        var element = angular.element(elements[index]);
+        element.css('visibility', 'hidden');
+      }
+
+      /**
+       * Show an element
+       * @param index
+       */
+      function showElement (index) {
+        var element = angular.element(elements[index]);
+        elements.css('visibility', 'normal');
+      }
       /**
        * Trigger a function supplied to the directive
        */
@@ -669,8 +745,11 @@
        */
       function calculateWrapper () {
         // Recalculate the virtual wrapper height
-        wrapper.height = list.length * row.height;
-        wrapper.el.css('height', wrapper.height + 'px');
+        if (list) {
+          wrapper.height = ((list.length + (list.length % columns)) / columns) * row.height;
+          //console.log('Updating wrapper', wrapper.height, (list.length % columns));
+          wrapper.el.css('height', wrapper.height + 'px');
+        }
       }
 
       /**
@@ -679,9 +758,10 @@
       function calculateBuffer () {
         // Calculate the number of items that can be visible at a given time
         view.size = Math.ceil(container.height / row.height) + 1;
-        buffer.bottom = buffer.size - 1 || BUFFER_SIZE - 1;
+        buffer.bottom = buffer.size || BUFFER_SIZE;
         buffer.yBottom = buffer.size * row.height || BUFFER_SIZE * ROW_HEIGHT;
-        buffer.distance = buffer.size - view.size;
+        buffer.distance = (buffer.rows - view.size) > 0 ? buffer.rows - view.size : 0;
+        //console.log('Calculating buffer', buffer.rows, buffer.size, view.size, buffer.distance);
       }
 
     }]);
