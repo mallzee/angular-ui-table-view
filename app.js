@@ -10,10 +10,11 @@ angular.module('AngularUiTableView', [
 'ngSanitize',
 'ngTouch',
 'ngAnimate',
+'restangular',
 //additional angular modules
 'mallzee.ui-table-view'
 ]).
-config(['$routeProvider', '$locationProvider', '$compileProvider', function($routeProvider, $locationProvider, $compileProvider) {
+config(['$routeProvider', '$locationProvider', '$compileProvider', 'RestangularProvider', function($routeProvider, $locationProvider, $compileProvider, RestangularProvider) {
 	/**
 	setup - whitelist, appPath, html5Mode
 	@toc 1.
@@ -31,5 +32,20 @@ config(['$routeProvider', '$locationProvider', '$compileProvider', function($rou
 	$routeProvider.when(appPathRoute+'home', {templateUrl: 'examples/table-view/table-view.html'});
 
 	$routeProvider.otherwise({redirectTo: appPathRoute+'home'});
+
+    RestangularProvider.setBaseUrl('http://staging.api.mallzee.com');
+    RestangularProvider.setRestangularFields({
+      id: "_id"
+    });
+
+    // Now let's configure the response extractor for each request
+    RestangularProvider.setResponseExtractor(function(response) {
+      if (response.records) {
+        var newResponse = response.records;
+        newResponse.originalElement = angular.copy(response);
+        return newResponse;
+      }
+      return response;
+    });
 
 }]);

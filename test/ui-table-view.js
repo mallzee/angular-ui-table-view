@@ -16,7 +16,7 @@ describe('UITableView', function () {
   var html =
     '<mlz-ui-table-view style="height:480px; width: 320px"'
       + 'list="list" row-height="' + rowHeight + '"'
-      + 'buffer-size="' + bufferSize + '"'
+      + 'rows="' + bufferSize + '"'
       + 'trigger-bottom="bottomTrigger()" '
       + 'trigger-top="topTrigger()">'
       +   '<div id="{{item.id}}" ng-repeat="item in items track by item.$$position">'

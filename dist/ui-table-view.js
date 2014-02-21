@@ -11,7 +11,8 @@
   angular.module('mallzee.ui-table-view', [])
     .directive('mlzUiTableView', ['$window', '$timeout', '$log', function ($window, $timeout, $log) {
 
-      var BUFFER_SIZE = 10,
+      var BUFFER_ROWS = 10,
+        COLUMNS = 1,
         ROW_HEIGHT = 40,
         ROW_WIDTH = '100%',
         EDGE_TOP = 'top',
@@ -33,6 +34,7 @@
         wrapper = {
           height: 0,
           width: 0,
+          rows: 0,
           el: undefined
         },
 
@@ -44,7 +46,7 @@
           width: ROW_WIDTH
         },
 
-        columns = 1,
+        columns = COLUMNS,
 
         trigger = {
           distance: TRIGGER_DISTANCE
@@ -100,6 +102,7 @@
           right: 0, //TODO: Support x axis
           items: [],
           size: 0,
+          rows: 0,
           yTop: 0,
           yBottom: 0,
           atEdge: EDGE_TOP,
@@ -110,7 +113,8 @@
 
       // Information about the buffer status
         buffer = {
-          size: BUFFER_SIZE, // The buffer size, i.e. how many DOM elements we'll track
+          rows: BUFFER_ROWS,
+          size: BUFFER_ROWS * COLUMNS, // The buffer size, i.e. how many DOM elements we'll track
           items: [], // The items data that are in the current buffer
           elements: [], // Reference to that actual DOM elements that make up the buffer //TODO: Remove this from the scope some how
           top: 0, // Index position of the top of the buffer.
@@ -124,7 +128,8 @@
           atEdge: EDGE_TOP, // Marks if the buffer is at an edge, and if so, which one.
           pointer: 0,      // Marks the current element at the top of the table
           distance: 0,    // How many elements of the buffer are out of view. Used to calculate the distance moved on a direction change
-          reset: false
+          reset: false,
+          refresh: false
         },
         _buffer; // Previous tick data
 
@@ -134,9 +139,6 @@
         transclude: true,
         replace: false,
         template: '<div class="mlz-ui-table-view-wrapper" ng-transclude></div>',
-        /*controller: ['$scope', function($scope) {
-
-         }],*/
         link: function (scope, element, attributes) {
 
           // Save references to the elements we need access to
@@ -171,13 +173,17 @@
 
           // The master list of items has changed. Recalculate the virtual list
           scope.$watchCollection('list', function (newList) {
+            console.log('List changed');
             if (newList) {
               list = newList;
             } else {
               $log.warn('Trying to remove the list completely');
             }
-            calculateWrapper();
-            drawBuffer();
+
+            if (list.length > 0) {
+console.log('Drawing buffer after list change');
+              updateBuffer();
+            }
           });
 
           // The status bar has been tapped. To the top with ye!
@@ -208,7 +214,6 @@
 
       /**
        * Copy the current models so we can create a delta from them
-       *
        */
       function initialise (scope, attributes) {
         _scroll = angular.copy(scroll);
@@ -223,8 +228,8 @@
           columns = +attributes.columns;
         }
 
-        if (attributes.bufferSize) {
-          buffer.rows = +attributes.bufferSize;
+        if (attributes.rows) {
+          buffer.rows = +attributes.rows;
           buffer.size = buffer.rows * columns;
         }
 
@@ -242,6 +247,16 @@
           };
         }
 
+        calculateContainer();
+
+
+        if (list.length > 0) {
+console.log('Drawing buffer on initialisation');
+          updateBuffer();
+        }
+      }
+
+      function updateBuffer() {
         calculateDimensions();
 
         createBuffer();
@@ -268,8 +283,8 @@
           return false;
         }
 
-        angular.copy(list.slice(buffer.top, buffer.bottom), items);
-
+        angular.copy(list.slice(itemIndexFromRow(buffer.top), itemIndexFromRow(buffer.bottom)), items);
+console.log(list.length, itemIndexFromRow(buffer.top), itemIndexFromRow(buffer.bottom), items);
         for (var i = 0; i < items.length; i++) {
           items[i].$$position = i;
         }
@@ -290,7 +305,7 @@
 
         for (var i = 0; i < buffer.size; i++) {
 
-          e = (buffer.top * columns) + i;
+          e = itemIndexFromRow(buffer.top) + i;
           p = getRelativeBufferPosition(e);
 
           (p % columns === 0) ? r++ : null ;
@@ -304,9 +319,8 @@
           } else {
             showElement(p);
           }
-          //console.log('Merging', list[e], 'with', items[p]);
+console.log('Merging', e, list[e], 'with', p, items[p], y);
           angular.extend(items[p], list[e]);
-
 
           items[p].$$index = e;
           items[p].$$height = row.height;
@@ -316,7 +330,7 @@
 
           renderElement(p, x, y);
 
-          if (i < view.size) {
+          if (i < view.rows) {
             items[i].$$visible = true;
           }
         }
@@ -341,7 +355,7 @@
 
         // We're going to scroll right passed the limits of our buffer.
         // We may as well just redraw from the new index
-        if (buffer.reset) {
+        if (buffer.reset || buffer.refresh) {
           switch (scroll.direction) {
             case SCROLL_UP:
               setBufferToIndex(view.bottom - buffer.size);
@@ -376,6 +390,15 @@
         return index % buffer.size;
       }
 
+      /**
+       * Calculate the starting index of an item in a row
+       * @param row
+       * @returns {number}
+       */
+      function itemIndexFromRow (row) {
+        return row * columns;
+      }
+
 
       /**
        * Update model variables for delta tracking
@@ -390,12 +413,17 @@
        * Setup the buffered elements ready for manipulating
        */
       function positionElements () {
+
+        if (elements.length > 0) {
+          return;
+        }
+
         $timeout(function () {
           elements = container.el.children().children();
 
           var p, x, y, el, r = buffer.top - 1;
 
-          for (var i = buffer.top; i < (buffer.top + buffer.size); i++) {
+          for (var i = itemIndexFromRow(buffer.top); i < (itemIndexFromRow(buffer.top) + buffer.size); i++) {
 
             p = getRelativeBufferPosition(i);
 
@@ -404,7 +432,7 @@
             x = (p % columns) * (container.width / columns);
             y = r * row.height;
             el = angular.element(elements[p]);
-
+            console.log('Positioning elements', buffer.top, p, x, y);
             el.css({
                 position: 'absolute',
                 height: row.height + 'px',
@@ -420,16 +448,16 @@
         // we need to adjust the buffer accordingly
         if (buffer.top < 0) {
           buffer.top = 0;
-          buffer.bottom = buffer.size / columns;
+          buffer.bottom = buffer.rows;
         } else if (buffer.bottom >= list.length) {
-          buffer.top = (list.length - buffer.size) / columns;
-          buffer.bottom = list.length / columns;
+          buffer.top = (wrapper.rows - buffer.rows);
+          buffer.bottom = wrapper.rows;
         }
 
         // Update the extra properties of the buffer
         buffer.yTop = buffer.top * row.height;
         buffer.yBottom = buffer.bottom * row.height;
-        buffer.atEdge = (buffer.top <= 0) ? EDGE_TOP : (buffer.bottom >= list.length) ? EDGE_BOTTOM : false;
+        buffer.atEdge = (buffer.top <= 0) ? EDGE_TOP : (buffer.bottom >= wrapper.rows) ? EDGE_BOTTOM : false;
       }
 
       /**
@@ -463,8 +491,8 @@
           scroll.row = 0;
         }
 
-        if (scroll.row >= list.length) {
-          scroll.row = list.length - 1;
+        if (scroll.row >= wrapper.rows) {
+          scroll.row = wrapper.rows - 1;
         }
 
         scroll.yDistance = Math.abs(scroll.row - _scroll.row);
@@ -477,7 +505,7 @@
         scroll.directionChange = (scroll.direction !== _scroll.direction);
 
         // Check if we should reset the buffer this tick
-        buffer.reset = scroll.yDistance > buffer.size;
+        buffer.reset = scroll.yDistance > buffer.rows;
       }
 
       /**
@@ -486,7 +514,7 @@
        */
       function updateViewModel () {
 
-        //view.bottom = scroll.row + view.size - 1;
+        //view.bottom = scroll.row + view.rows - 1;
         view.yTop = scroll.y;
         view.yBottom = scroll.y + container.height;
         view.top = scroll.row;
@@ -504,7 +532,7 @@
         // Calculate if there have been index changes on either side of the view
         view.ytChange = (view.top !== _view.top);
         view.ybChange = (view.bottom !== _view.bottom);
-        //console.log('View model', view.top, view.bottom, view.size, buffer.size);
+        //console.log('View model', view.top, view.bottom, view.rows, buffer.size);
       };
 
       /**
@@ -514,7 +542,7 @@
        */
       function setBufferToIndex (index) {
         buffer.top = index;
-        buffer.bottom = buffer.top + buffer.size;
+        buffer.bottom = buffer.top + buffer.rows;
         validateBuffer();
       }
 
@@ -530,16 +558,16 @@
         var index = scroll.row,
           direction = scroll.direction,
           distance = buffer.distance;
-
+console.log(direction, distance, index, buffer.size);
         // Based on the scroll direction, update the buffer model
         switch (direction) {
           case SCROLL_UP:
             buffer.top = index - distance;
-            buffer.bottom = (index - distance) + (buffer.size / columns);
+            buffer.bottom = (index - distance) + buffer.rows;
             break;
           case SCROLL_DOWN:
             buffer.top = index;
-            buffer.bottom = index + (buffer.size / columns);
+            buffer.bottom = index + buffer.rows;
             break;
           default:
             $log.warn('We only know how to deal with scrolling on the y axis for now');
@@ -573,7 +601,7 @@
           /*var position = getRelativeBufferPosition(end),
             y = px + (row.height * (i - position % columns)),
             x = (position % columns) * (container.width / columns);*/
-//console.log('Scrolling up', end, distance, p, i, r, x, y, buffer.distance, view.size);
+//console.log('Scrolling up', end, distance, p, i, r, x, y, buffer.distance, view.rows);
 
           itemsToMerge[i].$$top = y;
           itemsToMerge[i].$$index = start * columns + i;
@@ -629,7 +657,7 @@
           return;
         }
 
-        if (buffer.reset) {
+        if (buffer.reset || buffer.refresh) {
           // Reset the buffer to this ticks window
           start = buffer.top;
           end = buffer.bottom;
@@ -675,7 +703,7 @@
       function renderElement (index, x, y) {
 
         var element = angular.element(elements[index]);
-        //console.log('Rendering element', index, x, y);
+console.log('Rendering element', index, x, y);
         element.css('-webkit-transform', 'translate3d(' + x + 'px, ' + y + 'px, 0px)');
       }
 
@@ -726,7 +754,6 @@
        * the buffer calculations from
        */
       function calculateDimensions () {
-        calculateContainer();
         calculateWrapper();
         calculateBuffer();
       }
@@ -746,8 +773,10 @@
       function calculateWrapper () {
         // Recalculate the virtual wrapper height
         if (list) {
-          wrapper.height = ((list.length + (list.length % columns)) / columns) * row.height;
-          //console.log('Updating wrapper', wrapper.height, (list.length % columns));
+          wrapper.rows = ((list.length + (list.length % columns)) / columns);
+          wrapper.height = wrapper.rows * row.height;
+
+console.log('Updating wrapper', wrapper.height, (list.length % columns));
           wrapper.el.css('height', wrapper.height + 'px');
         }
       }
@@ -757,11 +786,11 @@
        */
       function calculateBuffer () {
         // Calculate the number of items that can be visible at a given time
-        view.size = Math.ceil(container.height / row.height) + 1;
-        buffer.bottom = buffer.size || BUFFER_SIZE;
-        buffer.yBottom = buffer.size * row.height || BUFFER_SIZE * ROW_HEIGHT;
-        buffer.distance = (buffer.rows - view.size) > 0 ? buffer.rows - view.size : 0;
-        //console.log('Calculating buffer', buffer.rows, buffer.size, view.size, buffer.distance);
+        view.rows = Math.ceil(container.height / row.height) + 1;
+        buffer.bottom = buffer.top + buffer.rows || buffer.top + BUFFER_SIZE;
+        buffer.yBottom = buffer.bottom * row.height || (buffer.top + BUFFER_SIZE) * ROW_HEIGHT;
+        buffer.distance = (buffer.rows - view.rows) > 0 ? buffer.rows - view.rows : 0;
+console.log('Calculating buffer', buffer.rows, buffer.size, view.rows, buffer.distance);
       }
 
     }]);
