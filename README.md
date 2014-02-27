@@ -32,7 +32,7 @@ Use the following directive to turn your ng-repeats into super performant lists.
 This then generates a small list of items (the size of the buffer set) that it will manage and keep track of so it doesn't kill the performance of your device. It creates an array called `items` which you should use in your ng-repeat directive and track by the $$position variable. This is to stop the DOM elements switching out when items are replaced in the array.
 
 ```HTML
-<mlz-ui-table-view list="list" row-height="100" view-buffer="20">
+<mlz-ui-table-view list="list" row-height="100" buffer-size="20" columns="1">
     <div ng-repeat="item in items track by item.$$position">
         <dt ng-bind="item.name"></dt>
         <dd ng-bind="item.details"></dd>

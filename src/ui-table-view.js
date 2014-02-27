@@ -32,8 +32,8 @@
 
           // Model the main container for the view table
             container = {
-              height: 0, //container.attr('height') || container.prop('clientHeight'),
-              width: 0, //container.attr('width') || container.prop('clientWidth')
+              height: 0,
+              width: 0,
               el: undefined
             },
 
@@ -243,7 +243,7 @@
 
             if (list.length > 0) {
 //console.log('Drawing buffer on initialisation');
-              container.prop('scrollTop', getYFromIndex(buffer.top));
+              container.el.prop('scrollTop', getYFromIndex(buffer.top));
               updateBuffer();
             }
           }
@@ -792,7 +792,10 @@
           }
 
           function cleanup () {
-            delete container, wrapper, elements, items, list, scroll, _scroll, view, _view, buffer, _buffer;
+            $window.removeEventListener('statusTap');
+            container.el.off('scroll');
+            //delete container, wrapper, elements, items, list, scroll, _scroll, view, _view, buffer, _buffer;
+
             scope.$destory();
           }
 
