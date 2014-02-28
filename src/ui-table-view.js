@@ -429,7 +429,7 @@
                 x = (p % columns) * (container.width / columns);
                 y = r * row.height;
                 el = angular.element(elements[p]);
-                console.log('Positioning elements', buffer.top, p, x, y);
+//console.log('Positioning elements', buffer.top, p, x, y);
                 el.css({
                   position: 'absolute',
                   height: row.height + 'px',
@@ -718,7 +718,6 @@
            * @param index
            */
           function showElement (index) {
-            var element = angular.element(elements[index]);
             elements.css('visibility', 'normal');
           }
 
@@ -794,12 +793,16 @@
           function cleanup () {
             $window.removeEventListener('statusTap');
             container.el.off('scroll');
-            //delete container, wrapper, elements, items, list, scroll, _scroll, view, _view, buffer, _buffer;
+            elements.remove();
+            wrapper.el.remove();
+            container.el.remove();
+            delete container.el;
+            delete wrapper.el;
 
-            scope.$destory();
+            elements = null;
           }
 
-          element.on('$destory', function () {
+          scope.$on('$destroy', function () {
             cleanup();
           })
         }
