@@ -3,11 +3,11 @@
     <h2>Items length: {{list.length}}</h2>
     <button ng-click="changeList()">Change List</button>
     <button ng-click="generateArray()">Generate Array</button>
-    <mlz-ui-table-view list="list" style="width:640px; height: 455px; border: 1px solid #eee" row-height="100" rows="5" columns="2">
-        <div id="{{item.$$position}}" ng-repeat="item in items track by item.$$position">
+    <mlz-ui-table-view list="list" style="width:640px; height: 455px; border: 1px solid #eee" row-height="100" rows="5" columns="2" on-delete="iCanHazDelete">
+        <mlz-ui-table-view-item item="item" id="{{item.$$position}}" ng-repeat="item in items track by item.$$position">
             <dt ng-bind="item.name"></dt>
             <dd ng-bind="item.details"></dd>
             <button ng-click="deleteItem(item.$$index)">Delete Me {{item.$$index}} {{item.$$position}}</button>
-        </div>
+        </mlz-ui-table-view-item>
     </mlz-ui-table-view>
 </div>

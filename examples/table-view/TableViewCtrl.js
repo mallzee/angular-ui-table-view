@@ -30,7 +30,11 @@ angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', 'Res
 
   $scope.deleteMe = function(index) {
     console.log('Delete Me', index);
-      $scope.list.splice(index, 1);
+    $scope.list.splice(index, 1);
+  };
+
+  $scope.iCanHazDelete = function(item) {
+    console.log('I HAZ DELETE', item);
   };
 
   console.log('Items now has ' + $scope.list.length + ' element');

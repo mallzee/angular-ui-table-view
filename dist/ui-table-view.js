@@ -9,6 +9,13 @@
    * TODO: Add in some docs on how to use this angular module and publish them on GitHub pages.
    */
   angular.module('mallzee.ui-table-view', [])
+    .directive('mlzUiTableViewItem', function () {
+      return {
+        scope: {
+          item: '='
+        }
+      }
+    })
     .directive('mlzUiTableView', ['$window', '$timeout', '$log', function ($window, $timeout, $log) {
 
       return {
@@ -153,9 +160,9 @@
           scope.items = items;
 
           scope.deleteItem = function (index) {
-            //console.log('Deleting ' + index, buffer);
             // Remove the item from the list
-            //list.splice(index, 1);
+            scope.item = list.splice(index, 1)[0];
+            console.log('Deleting ' + index, scope.item, buffer);
 
             // If we're at the bottom edge of the buffer.
             // We need to reduce the buffer indexes by the amount deleted
@@ -163,6 +170,9 @@
               //console.log('Delete on bottom edge');
               buffer.top--;
               buffer.bottom--;
+            }
+            if (attributes.onDelete) {
+              scope.$eval(attributes.onDelete + '(item)');
             }
             updateBuffer();
           };
