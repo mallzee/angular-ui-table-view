@@ -6,6 +6,11 @@
 angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', 'Restangular', function($scope, Restangular) {
 
   $scope.list = [];
+  $scope.view = {
+    rows: 5,
+    rowHeight: 455,
+    columns: 2
+  };
 
   $scope.generateArray = function () {
     console.log('Generate array');

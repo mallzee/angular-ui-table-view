@@ -6,24 +6,59 @@
   'use strict';
 
   /**
+   * Return the DOM siblings between the first and last node in the given array.
+   * @param {Array} array like object
+   * @returns {DOMElement} object containing the elements
+   */
+  function getBlockElements(nodes) {
+    var startNode = nodes[0],
+      endNode = nodes[nodes.length - 1];
+    if (startNode === endNode) {
+      return angular.element(startNode);
+    }
+
+    var element = startNode;
+    var elements = [element];
+
+    do {
+      element = element.nextSibling;
+      if (!element) break;
+      elements.push(element);
+    } while (element !== endNode);
+
+    return angular.element(elements);
+  }
+
+  /**
    * TODO: Add in some docs on how to use this angular module and publish them on GitHub pages.
    */
-  angular.module('mallzee.ui-table-view', [])
+  angular.module('mallzee.ui-table-view', ['ngAnimate'])
     .directive('mlzUiTableViewItem', function () {
       return {
-        scope: {
-          item: '='
+        restrict: 'A',
+        link: function(scope, element) {
+          scope.$watch('$coords', function (coords) {
+            console.log('Item coords has changed', coords);
+            if (coords) {
+              element.css({
+                position: 'absolute',
+                webkitTransform: 'translate3d(' + coords.x + 'px, ' + coords.y + 'px, 0px)'
+              });
+            }
+          });
         }
       }
     })
-    .directive('mlzUiTableView', ['$window', '$timeout', '$log', function ($window, $timeout, $log) {
-
+    .directive('mlzUiTableView', ['$window', '$timeout', '$log', '$animate', '$$animateReflow', function ($window, $timeout, $log, $animate, $$animateReflow) {
       return {
         restrict: 'E',
         transclude: true,
+        terminal: true,
+        priority: 10000,
+        $$tlb: true,
         replace: false,
         template: '<div class="mlz-ui-table-view-wrapper" ng-transclude></div>',
-        link: function (scope, element, attributes) {
+        link: function (scope, element, attributes, ctrl, $transclude) {
 
           var BUFFER_ROWS = 10,
             COLUMNS = 1,
@@ -35,7 +70,7 @@
             SCROLL_DOWN = 'down',
             TRIGGER_DISTANCE = 5;
 
-          var list = [], items = [],
+          var list = [], items = [], itemName = 'item',
 
           // Model the main container for the view table
             container = {
@@ -105,7 +140,10 @@
             metadata = {
               $$position: 0,
               $$visible: true,
-              $$top: 0,
+              $$coords: {
+                x: 0,
+                y: 0
+              },
               $$height: 0
             },
 
@@ -151,14 +189,25 @@
           // Save references to the elements we need access to
           container.el = element;
           wrapper.el = element.children();
-          elements = element.children().children();
 
-          // Make a copy of the main list for extracting data from
-          list = scope.$eval(attributes.list);
+          // TODO: Pull in the parts of iscroll we need someday and ditch the dependancy
+          var iscroll = new IScroll(element[0], {
+            useTransform: true,
+            useTransition: false,
+            HWCompositing: false,
 
-          // Make the buffered items available on the scope
-          scope.items = items;
+            probeType: 3,
+            mouseWheel: true
+            //snap: true
+          });
 
+          // Setup the table view
+          initialise(scope, attributes);
+
+          /**
+           * Delete an item from this table list
+           * @param index
+           */
           scope.deleteItem = function (index) {
             // Remove the item from the list
             scope.item = list.splice(index, 1)[0];
@@ -174,64 +223,88 @@
             if (attributes.onDelete) {
               scope.$eval(attributes.onDelete + '(item)');
             }
-            updateBuffer();
+            refresh();
           };
 
-          wrapper.el.css('position', 'relative');
-
-          // Setup the table view
-          initialise(scope, attributes);
-
           // The master list of items has changed. Recalculate the virtual list
-          scope.$watchCollection('list', function (newList) {
-            console.log('List changed');
-            if (newList) {
-              list = newList;
-            } else {
-              $log.warn('Trying to remove the list completely');
-            }
-
-            if (list.length > 0) {
-//console.log('Drawing buffer after list change');
-              updateBuffer();
-            }
+          scope.$watchCollection(attributes.list, function (newList) {
+            list = newList ? newList : [];
+            console.log('List changed', list.length);
+            refresh();
           });
 
-          // The status bar has been tapped. To the top with ye!
-          $window.addEventListener('statusTap', function () {
-            scrollToTop();
-          });
+          /*scope.$watchCollection('items', function (items) {
+            console.log('Items changes. Lets update the elements', items.length, buffer.size);
+            if(items && items.length < buffer.size) {
+              generateBufferedItems(items.length);
+            }
+          });*/
 
+
+          /**
+           * Lets get our scroll oawn!
+           *
+           * We're making use of rAF so we get silky smooth
+           * motion out of our scrolls.
+           */
           // When we scroll. Lets work some magic.
-          container.el.on('scroll', function () {
-            scope.$apply(function () {
-              setScrollPosition(container.el.prop('scrollTop'));
-            });
+          var y, updating = false;
+          iscroll.on('scroll', function () {
+            y = Math.abs(this.y);
+            tick();
           });
+
+          function tick() {
+            if (!updating) {
+              // Recall the loop
+              $$animateReflow(function() {
+                update();
+              });
+            }
+            updating = true;
+          }
+
+          function update() {
+            updating = false;
+            setScrollPosition(y);
+          }
+
 
           /* * * * * * * * * * * * * * * */
           /* Helper functions            */
           /* * * * * * * * * * * * * * * */
 
           /**
+           * Initialised the directive. Setups watchers and calcaultes what we can without data
            * Copy the current models so we can create a delta from them
            */
           function initialise (scope, attributes) {
+
+            element.css({
+              display: 'block',
+              overflow: 'hidden'
+            });
+
             _scroll = angular.copy(scroll);
             _view = angular.copy(view);
             _buffer = angular.copy(buffer);
 
-            if (attributes.rowHeight) {
-              row.height = +attributes.rowHeight;
+            /**
+             * Handle attributes
+             */
+            if (attributes.itemName) {
+              itemName = scope.$eval(attributes.itemName);
             }
 
-            if (attributes.columns) {
-              columns = +attributes.columns;
-            }
-
-            if (attributes.rows) {
-              buffer.rows = +attributes.rows;
-              buffer.size = buffer.rows * columns;
+            if (attributes.viewParams) {
+              scope.$watch(attributes.viewParams, function (view) {
+                console.log('View params change', view);
+                row.height = view.rowHeight ? view.rowHeight : ROW_HEIGHT;
+                columns = view.columns ? view.columns : COLUMNS;
+                buffer.rows = view.rows ? view.rows : BUFFER_ROWS;
+                buffer.size = buffer.rows * columns;
+                refresh();
+              }, true);
             }
 
             // Setup trigger functions for the directive
@@ -248,99 +321,131 @@
               };
             }
 
+            /**
+             * Add event listeners
+             */
+            // The status bar has been tapped. To the top with ye!
+            $window.addEventListener('statusTap', function () {
+              scrollToTop();
+            });
+
             calculateContainer();
 
-
-            if (list.length > 0) {
-//console.log('Drawing buffer on initialisation');
-              container.el.prop('scrollTop', getYFromIndex(buffer.top));
-              updateBuffer();
-            }
           }
 
-          function updateBuffer () {
+          function refresh () {
+            // TODO: Implment a way of storing the position in LS so we can restore to there
+            container.el.prop('scrollTop', getYFromIndex(buffer.top));
+
+            generateBufferedItems();
+
             calculateDimensions();
 
-            createBuffer();
+            iscroll.refresh();
+          }
 
-            positionElements();
+          /**
+           * Function used when transcluding the code into the wrapper
+           * Creates the comment marker and animates the entry to the DOM
+           * @param clone
+           */
+          function cloneElement(clone) {
+            clone[clone.length++] = document.createComment(' end mlzTableViewItem: ' + attributes.list + ' ');
+            $animate.enter(clone, wrapper.el);
+          }
+
+
+          function updateItem(elIndex, item, coords, index) {
+            buffer.elements[elIndex].scope[itemName] = item;
+            buffer.elements[elIndex].scope.$coords = coords;
+            buffer.elements[elIndex].scope.$index = index;
+            $animate.move(buffer.elements[elIndex].clone, wrapper.el);
+          }
+
+          /**
+           * Remove an element from the view at the specified index
+           * @param index
+           */
+          function destroyItem(index) {
+            var elementsToRemove = getBlockElements(buffer.elements[index].clone);
+            $animate.leave(elementsToRemove);
+            buffer.elements[index].scope.$destroy();
+            buffer.elements.splice(index, 1);
+          }
+
+          /**
+           * Create the buffered items required to display the data.
+           * Add/Removes items if the large data set changes in size
+           *
+           */
+          function generateBufferedItems() {
+
+            // TODO: Handle the case where the list could be smaller than the buffer.
+            angular.copy(list.slice(itemIndexFromRow(buffer.top), itemIndexFromRow(buffer.bottom)), items);
+
+            if (list.length <= 0 || items.length <= 0) {
+              return false;
+            }
+
+            if (buffer.elements.length > buffer.size) {
+              console.log('We need to destroy some shit!', buffer.elements.length, buffer.size);
+              // Keep a copy of the original elements length as we'll be adjusting this as we delete
+              var elementsLength = buffer.elements.length;
+              for(var i = elementsLength - 1; i >= buffer.size; i--) {
+                console.log('Destroying ', i, elementsLength);
+                destroyItem(i);
+              }
+            } else {
+
+              var p, x, y, el, e, r = buffer.top - 1;
+
+              console.log('Buffer deets', buffer.elements.length, buffer.size);
+              for (var i = buffer.elements.length; i < buffer.size; i++) {
+
+                if (items && i > items.length) {
+                  // If we're changing the item list. Remove any buffered items that are not required
+                  // because the list is smaller than the buffer.
+                  destroyItem(i);
+                } else {
+
+                  e = itemIndexFromRow(buffer.top) + i;
+                  p = getRelativeBufferPosition(e);
+
+                  (p % columns === 0) ? r++ : null;
+
+                  x = (p % columns) * (container.width / columns);
+                  y = r * row.height;
+
+                  var newItem = {};
+                  newItem.scope = scope.$new();
+                  newItem.scope[itemName] = list[e];
+                  newItem.scope.$index = e;
+                  newItem.scope.$height = row.height;
+                  newItem.scope.$coords = { x:x, y:y }
+                  newItem.scope.$visible = false;
+                  newItem.clone = $transclude(newItem.scope, cloneElement);
+                  buffer.elements[i] = newItem;
+
+                  // TODO: We should be able to position this without a watcher on the individual scope
+                  //renderElement(p, x, y);
+                }
+
+              }
+            }
+
+            calculateWrapper();
+            setupNextTick();
           }
 
           /**
            * Move the scroller back to the top.
            */
           function scrollToTop () {
-            container.el.animate({scrollTop: 0}, 'slow');
+            iscroll.scrollTo(0, 0, 1000, IScroll.utils.ease.elastic);
           }
 
           function getYFromIndex (index) {
             return index * row.height;
-          }
-
-          /**
-           * Add the metadata required by ng-repeats track by to stop DOM creation/deletion
-           *
-           * @param items
-           * @returns {boolean}
-           */
-          function createBuffer () {
-
-            if (!list) {
-              return false;
-            }
-
-            angular.copy(list.slice(itemIndexFromRow(buffer.top), itemIndexFromRow(buffer.bottom)), items);
-//console.log(list.length, itemIndexFromRow(buffer.top), itemIndexFromRow(buffer.bottom), items);
-            for (var i = 0; i < items.length; i++) {
-              items[i].$$position = i;
-            }
-
-            drawBuffer();
-
-            // We've made changes to the models so we must update the deltas
-            setupNextTick();
-          }
-
-          function drawBuffer () {
-
-            if (list.length <= 0 || items.length <= 0) {
-              return false;
-            }
-
-            var p, x, y, el, e, r = buffer.top - 1;
-
-            for (var i = 0; i < buffer.size; i++) {
-
-              e = itemIndexFromRow(buffer.top) + i;
-              p = getRelativeBufferPosition(e);
-
-              (p % columns === 0) ? r++ : null;
-
-              x = (p % columns) * (container.width / columns);
-              y = r * row.height;
-              el = angular.element(elements[p]);
-
-              if (e >= list.length) {
-                hideElement(p);
-              } else {
-                showElement(p);
-              }
-//console.log('Merging', e, list[e], 'with', p, items[p], y);
-              angular.extend(items[p], list[e]);
-
-              items[p].$$index = e;
-              items[p].$$height = row.height;
-              items[p].$$top = y;
-              items[p].$$visible = false;
-              //items[pos].$$position = pos;
-
-              renderElement(p, x, y);
-
-              if (i < view.rows) {
-                items[i].$$visible = true;
-              }
-            }
-            calculateWrapper();
           }
 
           /**
@@ -416,40 +521,8 @@
           }
 
           /**
-           * Setup the buffered elements ready for manipulating
+           * Validate our buffer numbers, and fix them if we've gone out of bounds
            */
-          function positionElements () {
-
-            if (elements.length > 0) {
-              return;
-            }
-
-            $timeout(function () {
-              elements = container.el.children().children();
-              container.el.prop('scrollTop', getYFromIndex(buffer.top));
-
-              var p, x, y, el, r = buffer.top - 1;
-
-              for (var i = itemIndexFromRow(buffer.top); i < (itemIndexFromRow(buffer.top) + buffer.size); i++) {
-
-                p = getRelativeBufferPosition(i);
-
-                (p % columns === 0) ? r++ : null;
-
-                x = (p % columns) * (container.width / columns);
-                y = r * row.height;
-                el = angular.element(elements[p]);
-//console.log('Positioning elements', buffer.top, p, x, y);
-                el.css({
-                  position: 'absolute',
-                  height: row.height + 'px',
-                  webkitTransform: 'translate3d(' + x + 'px, ' + y + 'px, 0px)'
-                });
-
-              }
-            });
-          }
-
           function validateBuffer () {
             // If we're breaking the boundaries
             // we need to adjust the buffer accordingly
@@ -478,6 +551,10 @@
               );
           }
 
+          /**
+           * Calculates if we've hit a trigger zone
+           * @returns {boolean|*}
+           */
           function isTriggerRequired () {
             return (view.triggerZone !== false && view.triggerZoneChange);
           }
@@ -540,7 +617,7 @@
             view.ytChange = (view.top !== _view.top);
             view.ybChange = (view.bottom !== _view.bottom);
             //console.log('View model', view.top, view.bottom, view.rows, buffer.size);
-          };
+          }
 
           /**
            * Set the buffer to an index.
@@ -583,7 +660,6 @@
             validateBuffer();
           }
 
-
           /**
            * Perform the scrolling up action by updating the required elements
            * @param start
@@ -591,30 +667,24 @@
            */
           function scrollingUp (start, distance) {
 
-            var itemsToMerge = list.slice((start * columns), (start * columns) + distance),
-              end = (start + distance) - 1;
+            var itemsToMerge = list.slice((start * columns), (start * columns) + distance);
 
             var p, x, y, r = start + (distance / columns) - 1;
 
             for (var i = itemsToMerge.length - 1; i >= 0; i--) {
-
-
               p = getRelativeBufferPosition((start * columns) + i);
-
-
               x = (p % columns) * (container.width / columns);
               y = r * row.height;
 
-              /*var position = getRelativeBufferPosition(end),
-               y = px + (row.height * (i - position % columns)),
-               x = (position % columns) * (container.width / columns);*/
 //console.log('Scrolling up', end, distance, p, i, r, x, y, buffer.distance, view.rows);
 
-              itemsToMerge[i].$$top = y;
-              itemsToMerge[i].$$index = start * columns + i;
-
-              angular.extend(items[p], itemsToMerge[i]);
-              renderElement(p, x, y);
+              var coords = {
+                x: x,
+                y: y
+              };
+              var index = start * columns + i;
+              updateItem(p, itemsToMerge[i], coords, index);
+              //renderElement(p, x, y);
 
               (p % columns === 0) ? r-- : null;
 
@@ -642,12 +712,14 @@
 
 //console.log('Scrolling down', start, distance, p, i, x, y, r);
 
-              itemsToMerge[i].$$top = y;
-              itemsToMerge[i].$$index = start * columns + i;
+              var coords = {
+                x: x,
+                y: y
+              };
+              var index = start * columns + i;
               //console.log('Merging', itemsToMerge[i], 'with', items[p]);
-
-              angular.extend(items[p], itemsToMerge[i]);
-              renderElement(p, x, y);
+              updateItem(p, itemsToMerge[i], coords, index);
+              //renderElement(p, x, y);
             }
           }
 
@@ -680,6 +752,7 @@
                   scrollingDown(start, distance);
                   break;
               }
+              scope.$digest();
             } else {
               // If we've changed the scroll direction.
               // Update the buffer to reflect the direction.
@@ -688,17 +761,18 @@
                   start = buffer.top;
                   end = _buffer.top;
                   distance = Math.abs((end - start) * columns);
-                  //console.log('Distance up', distance, start, end, columns, buffer.top, buffer.bottom);
+//console.log('Distance up', distance, start, end, columns, buffer.top, buffer.bottom);
                   scrollingUp(start, distance);
                   break;
                 case SCROLL_DOWN:
                   start = _buffer.bottom;
                   end = buffer.bottom;
                   distance = Math.abs((end - start) * columns);
-                  //console.log('Distance down', distance, start, end, columns, buffer.top, buffer.bottom);
+//console.log('Distance down', distance, start, end, columns, buffer.top, buffer.bottom);
                   scrollingDown(start, distance);
                   break;
               }
+              scope.$digest();
             }
           }
 
@@ -709,9 +783,11 @@
            */
           function renderElement (index, x, y) {
 
+            //scope.$evalAsync(function () {
             var element = angular.element(elements[index]);
 //console.log('Rendering element', index, x, y);
             element.css('-webkit-transform', 'translate3d(' + x + 'px, ' + y + 'px, 0px)');
+            //});
           }
 
           /**
@@ -785,6 +861,7 @@
 
 //console.log('Updating wrapper', wrapper.height, (list.length % columns));
               wrapper.el.css('height', wrapper.height + 'px');
+              iscroll.refresh();
             }
           }
 
@@ -794,15 +871,18 @@
           function calculateBuffer () {
             // Calculate the number of items that can be visible at a given time
             view.rows = Math.ceil(container.height / row.height) + 1;
-            buffer.bottom = buffer.top + buffer.rows || buffer.top + BUFFER_SIZE;
-            buffer.yBottom = buffer.bottom * row.height || (buffer.top + BUFFER_SIZE) * ROW_HEIGHT;
+            buffer.bottom = buffer.top + buffer.rows || buffer.top + BUFFER_ROWS * COLUMNS;
+            buffer.yBottom = buffer.bottom * row.height || (buffer.top + BUFFER_ROWS * COLUMNS) * ROW_HEIGHT;
             buffer.distance = (buffer.rows - view.rows) > 0 ? buffer.rows - view.rows : 0;
-//console.log('Calculating buffer', buffer.rows, buffer.size, view.rows, buffer.distance);
+            console.log('Calculating buffer', buffer.top, buffer.bottom, buffer.rows, buffer.size, view.rows, buffer.distance, container.height, row.height);
           }
 
           function cleanup () {
             $window.removeEventListener('statusTap');
             container.el.off('scroll');
+            iscroll.destroy();
+            iscroll = null;
+
             elements.remove();
             wrapper.el.remove();
             container.el.remove();
@@ -814,7 +894,7 @@
 
           scope.$on('$destroy', function () {
             cleanup();
-          })
+          });
         }
       };
 

@@ -1,13 +1,25 @@
 <div ng-controller='TableViewCtrl'>
     <h1>UI Table View Demo</h1>
     <h2>Items length: {{list.length}}</h2>
+    <form>
+        <label>Rows<input ng-model="view.rows" /></label>
+        <label>Row height<input ng-model="view.rowHeight" /></label>
+        <label>Columns<input ng-model="view.columns" /></label>
+        <button ng-click="refreshTable()">Refresh Table</button>
+    </form>
     <button ng-click="changeList()">Change List</button>
     <button ng-click="generateArray()">Generate Array</button>
-    <mlz-ui-table-view list="list" style="width:640px; height: 455px; border: 1px solid #eee" row-height="100" rows="5" columns="2" on-delete="iCanHazDelete">
-        <mlz-ui-table-view-item item="item" id="{{item.$$position}}" ng-repeat="item in items track by item.$$position">
-            <dt ng-bind="item.name"></dt>
-            <dd ng-bind="item.details"></dd>
-            <button ng-click="deleteItem(item.$$index)">Delete Me {{item.$$index}} {{item.$$position}}</button>
-        </mlz-ui-table-view-item>
-    </mlz-ui-table-view>
+    <section>
+        <mlz-ui-table-view list="list" style="width:640px; height: 455px; border: 1px solid #eee" view-params="view" on-delete="iCanHazDelete">
+            <div mlz-ui-table-view-item class="item">
+                <img mlz-img ng-src="http://img.mallzee.com/{{item._id}}/w320_h518.jpg" style="width:320px;height:455px" />
+                <img ng-src="{{item.brand_image_url}}" style="position:absolute;top:10px;left:10px" />
+                <div style="position:absolute;bottom:10px;width:100%;">
+                    <dt ng-bind="item.name" style="font-size:16pt;color:#aaa"></dt>
+                    <dd ng-bind="item.price | currency:'£'" ></dd>
+                    <button ng-click="deleteItem(item.$$index)">Delete Me {{item.$$index}} {{item.$$position}}</button>
+                </div>
+            </div>
+        </mlz-ui-table-view>
+    </section>
 </div>

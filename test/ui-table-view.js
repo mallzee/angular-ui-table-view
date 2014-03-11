@@ -15,11 +15,10 @@ describe('UITableView', function () {
 
   var html =
     '<mlz-ui-table-view style="height:480px; width: 320px"'
-      + 'list="list" row-height="' + rowHeight + '"'
-      + 'rows="' + bufferSize + '"'
+      + 'list="list" view="view"'
       + 'trigger-bottom="bottomTrigger()" '
       + 'trigger-top="topTrigger()">'
-      +   '<div id="{{item.id}}" ng-repeat="item in items track by item.$$position">'
+      +   '<div mlz-ui-table-view-item>'
       +     '<dt ng-bind="item.name"></dt>'
       +     '<dd ng-bind="item.details"></dd>'
       +   '</div>'
@@ -40,6 +39,13 @@ describe('UITableView', function () {
 
     inject(function ($compile, $rootScope, $document, $timeout) {
       var $scope = $rootScope.$new();
+
+      $scope.view = {
+        rows: bufferSize,
+        rowHeight: rowHeight,
+        columns: 1
+      };
+
       $scope.list = [];
 
       generateList($scope.list, numberOfItems);
@@ -51,6 +57,7 @@ describe('UITableView', function () {
         $scope.list.splice(index, 1);
       };
 
+
       document = $document;
 
       element = angular.element(html);
@@ -61,7 +68,7 @@ describe('UITableView', function () {
 
       scope.$digest();
 
-      $timeout.flush();
+      //$timeout.flush();
 
       $document.find('body').append(element);
 

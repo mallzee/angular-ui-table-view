@@ -20,6 +20,7 @@ Add the required files to your projects `index.html` file
 
 ```HTML
 <link rel="stylesheet" href="bower_components/angular-ui-table-view/dist/ui-table-view.css" />
+<script src="bower_components/iscroll/build/iscroll-probe.js"></script>
 <script src="bower_components/angular-ui-table-view/dist/ui-table-view.js"></script>
 ```
 
@@ -27,21 +28,62 @@ Add the `mallzee.ui-table-view` module to your application
 
     angular.module('myApp', ['mallzee.ui-table-view']);
     
-Use the following directive to turn your ng-repeats into super performant lists. Instead of using your big array in the ng-repeat directive. Use it as a parameter to the mlz-ui-table-view directive. 
+Use the following directive to turn your regular joe lists into super performant lists.
 
-This then generates a small list of items (the size of the buffer set) that it will manage and keep track of so it doesn't kill the performance of your device. It creates an array called `items` which you should use in your ng-repeat directive and track by the $$position variable. This is to stop the DOM elements switching out when items are replaced in the array.
-
+Here's some sample markup to turn your list into a super list
 ```HTML
-<mlz-ui-table-view list="list" row-height="100" buffer-size="20" columns="1">
-    <div ng-repeat="item in items track by item.$$position">
+<mlz-ui-table-view list="list" view-params="{rows:10, rowHeight: 100}">
+    <div class="item">
         <dt ng-bind="item.name"></dt>
         <dd ng-bind="item.details"></dd>
     </div>
-</mlz-ui-table-view>
+</mlz-table-view>
 ```
 
 # How does it work?
 
-The mlz-ui-table-view directive watches over your big list of items. It creates a subset of the items based on the window parameters currently give. These parameters are updated when the scroll position of wrapper changes.
+The mlz-ui-table-view directive watches over your big list of items. It creates a subset of the items based the viewport size (You can override the calculated values with a view object). It then injects the correct data into the correct DOM elements, and moves them into position to create the illusion of a stream of items, without killing the performance of your device and or crashing it all together.
+  
+# Why is this different
 
-DOM elements are limited to the buffer size and are never destroyed or created after initialisation. This is what makes the list highly performant. They are moved into the correct place in the list ,using 3d transforms, based on the item index and scroll position and are injected with the correct information from the larger array.
+Currently, this is based off iScroll 5, for now. This has the ability to inject the missing scroll events on mobile devices on momentum scroll. We then use this information to juggle DOM elements rather than deleting and recreating like some other solutions.
+
+DOM elements are limited to the buffer size and are only ever destroyed or created after initialisation when the list becomes smaller than the buffer size, or grows towards the buffer limit. This is what makes the list highly performant. They are moved into the correct place in the list ,using 3d transforms, based on the item index and scroll position and are injected with the correct information from the larger array.
+
+# Attributes
+
+The following attributes are supported by mlz-ui-table-view
+
+###list
+The array given to the list to enhance. This will be monitored for changes so that the heights of the wrapper can be adjusted if items are added or removed from this array. 
+
+If you are removing items from the current items in view. You should make use of the provided directive functions deleteItem($index). This allows the table to quickly workout how to redraw the table.
+
+###item-name
+By default, the list will copy the given view and inject in a scope with the correct item from the big list. This is given the scope property name of `item` by default. You can rename this to anything you want if item doesn't suit. Think of this as the equivalent to item in this ng-repeat expression `item in items`
+
+###view-params
+Eventually the view will do it's best to calculate the view parameters. Until then you have to specify these parameters in a view object. This object is watched, so the view can be updated by manipulating this object.
+
+ * **rows** - Default: 10 - This is the number of elements you are going to keep in the buffer. Generally this is the containers height / row height + 1
+ * **columns** - Default: 1 - This table view will handle columns of items.
+ * **rowHeight** - Default: 100 - Specify the row height so the items can be positioned correctly.
+ * **triggerDistance** - Default: 0 - If you want to trigger the edge before hitting it, set the number of items before the edge you want to concider the trigger zone. A value of zero means when the edge is touched. (i.e. a value of three means when the third item from the edge comes into view, the trigger zone for that edge will be triggered)
+
+*Example object*
+
+```
+var view = {
+   rows: 10,
+   rowHeight: 100,
+   columns: 1,
+   triggerDistance: 0
+}
+```
+
+###trigger-top
+###trigger-bottom
+Functions that will be called when the trigger zone is entered at the top or bottom of the list based on the views `triggerDistance` parameter
+
+
+
