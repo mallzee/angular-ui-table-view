@@ -42,6 +42,7 @@
             if (coords) {
               element.css({
                 position: 'absolute',
+                height: scope.$height + 'px',
                 webkitTransform: 'translate3d(' + coords.x + 'px, ' + coords.y + 'px, 0px)'
               });
             }
@@ -293,7 +294,7 @@
              * Handle attributes
              */
             if (attributes.itemName) {
-              itemName = scope.$eval(attributes.itemName);
+              itemName = attributes.itemName;
             }
 
             if (attributes.viewParams) {
@@ -877,19 +878,23 @@
             console.log('Calculating buffer', buffer.top, buffer.bottom, buffer.rows, buffer.size, view.rows, buffer.distance, container.height, row.height);
           }
 
+          function clearElements() {
+            for (var i = 0; i < buffer.elements; i++) {
+              destroyItem(i);
+            }
+          }
+
           function cleanup () {
             $window.removeEventListener('statusTap');
             container.el.off('scroll');
+            clearElements();
             iscroll.destroy();
             iscroll = null;
-
-            elements.remove();
             wrapper.el.remove();
             container.el.remove();
             delete container.el;
             delete wrapper.el;
-
-            elements = null;
+            delete buffer.elements;
           }
 
           scope.$on('$destroy', function () {
