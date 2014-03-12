@@ -5,6 +5,17 @@
 (function (window, angular, undefined) {
   'use strict';
 
+  Array.prototype.move = function (old_index, new_index) {
+    if (new_index >= this.length) {
+      var k = new_index - this.length;
+      while ((k--) + 1) {
+        this.push(undefined);
+      }
+    }
+    this.splice(new_index, 0, this.splice(old_index, 1)[0]);
+    return this; // for testing purposes
+  };
+
   /**
    * Return the DOM siblings between the first and last node in the given array.
    * @param {Array} array like object
@@ -33,22 +44,23 @@
    * TODO: Add in some docs on how to use this angular module and publish them on GitHub pages.
    */
   angular.module('mallzee.ui-table-view', ['ngAnimate'])
-    .directive('mlzUiTableViewItem', function () {
+    .directive('mlzUiTableViewItem', function ($timeout) {
       return {
         restrict: 'A',
         link: function(scope, element) {
           scope.$watch('$coords', function (coords) {
-            console.log('Item coords has changed', coords);
             if (coords) {
-              element.css({
-                position: 'absolute',
-                height: scope.$height + 'px',
-                webkitTransform: 'translate3d(' + coords.x + 'px, ' + coords.y + 'px, 0px)'
+              $timeout(function () {
+                element.css({
+                  position: 'absolute',
+                  height: scope.$height + 'px',
+                  webkitTransform: 'translate3d(' + coords.x + 'px, ' + coords.y + 'px, 0px)'
+                });
               });
             }
           });
         }
-      }
+      };
     })
     .directive('mlzUiTableView', ['$window', '$timeout', '$log', '$animate', '$$animateReflow', function ($window, $timeout, $log, $animate, $$animateReflow) {
       return {
@@ -211,7 +223,7 @@
            */
           scope.deleteItem = function (index) {
             // Remove the item from the list
-            scope.item = list.splice(index, 1)[0];
+            //scope.item = list.splice(index, 1)[0];
             console.log('Deleting ' + index, scope.item, buffer);
 
             // If we're at the bottom edge of the buffer.
@@ -221,6 +233,7 @@
               buffer.top--;
               buffer.bottom--;
             }
+
             if (attributes.onDelete) {
               scope.$eval(attributes.onDelete + '(item)');
             }
@@ -231,16 +244,15 @@
           scope.$watchCollection(attributes.list, function (newList) {
             list = newList ? newList : [];
             console.log('List changed', list.length);
+            /*for(var i = 0; i < buffer.elements.length; i++) {
+              var invalid = !angular.equals(buffer.elements[i].scope[itemName], newList[buffer.top + i]);
+              if (invalid) {
+                console.log('Invalidating element', buffer.elements[i].scope[itemName]);
+                $animate.move(buffer.elements[i].clone, wrapper.el);
+              }
+            }*/
             refresh();
           });
-
-          /*scope.$watchCollection('items', function (items) {
-            console.log('Items changes. Lets update the elements', items.length, buffer.size);
-            if(items && items.length < buffer.size) {
-              generateBufferedItems(items.length);
-            }
-          });*/
-
 
           /**
            * Lets get our scroll oawn!
@@ -336,7 +348,7 @@
 
           function refresh () {
             // TODO: Implment a way of storing the position in LS so we can restore to there
-            container.el.prop('scrollTop', getYFromIndex(buffer.top));
+            //container.el.prop('scrollTop', getYFromIndex(buffer.top));
 
             generateBufferedItems();
 
@@ -388,6 +400,8 @@
               return false;
             }
 
+            // We have more elements than specified by our buffer parameters.
+            // Lets get rid of any un needed elements
             if (buffer.elements.length > buffer.size) {
               console.log('We need to destroy some shit!', buffer.elements.length, buffer.size);
               // Keep a copy of the original elements length as we'll be adjusting this as we delete
@@ -396,41 +410,88 @@
                 console.log('Destroying ', i, elementsLength);
                 destroyItem(i);
               }
-            } else {
+            }
 
-              var p, x, y, el, e, r = buffer.top - 1;
+            // OK Now we can look at updating the current buffer.
+            // including adding any missing elements that may be required
+            var p, x, y, e, r = buffer.top - 1, found;
 
-              console.log('Buffer deets', buffer.elements.length, buffer.size);
-              for (var i = buffer.elements.length; i < buffer.size; i++) {
+            console.log('Buffer deets', buffer.elements.length, buffer.size);
+            for (var i = 0; i < buffer.size; i++) {
+              // If we're changing the item list. Remove any buffered items that are not required
+              // because the list is smaller than the buffer.
+              if (items && i > items.length) {
+                console.log('Destroying item');
+                destroyItem(i);
+              } else {
 
-                if (items && i > items.length) {
-                  // If we're changing the item list. Remove any buffered items that are not required
-                  // because the list is smaller than the buffer.
-                  destroyItem(i);
+                found = false;
+                e = itemIndexFromRow(buffer.top) + i;
+                p = getRelativeBufferPosition(e);
+
+                (p % columns === 0) ? r++ : null;
+
+                // If we have an element cached and it contains the same info, leave it as it is.
+                console.log(e, p, buffer.elements[p], list[e]);
+                if (buffer.elements[p] && angular.equals(list[e], buffer.elements[p].scope[itemName])) {
+                  console.log('Keep this item muthafucka');
+                  continue;
+                }
+
+                // Workout the x and y coords of this element
+                x = (p % columns) * (container.width / columns);
+                y = r * row.height;
+
+                if (buffer.elements[p]) {
+                  // Scan the buffer for this item. If it exists we should move that item into this
+                  // position and send this block to the bottom to be reused.
+                  for(var k = i; k < buffer.size; k++) {
+                    if (buffer.elements[k] && angular.equals(list[e], buffer.elements[k].scope[itemName])) {
+                      console.log('Found this item futher down the line muthafucka');
+                      //buffer.elements[k].scope[itemName] = list[e];
+                      buffer.elements[k].scope.$index = e;
+                      //buffer.elements[k].scope.$height = row.height;
+                      buffer.elements[k].scope.$coords = { x:x, y:y };
+                      // Cut out the elements in between the invalid item and this found one
+                      // and move them to the end.
+                      buffer.elements.join(buffer.elements.slice(p, k - p));
+                      // Move the found element into the correct place in the buffer elements array
+                      buffer.elements.move(k, p);
+                      $animate.move(buffer.elements[p].clone, wrapper.el);
+
+                      //buffer.elements.splice(p, 0, buffer.elements.splice(k, 1)[0]);
+                      found = true;
+                    }
+                  }
+
+                  if (found) {
+                    // We found this item further in the buffer. Move this buffered element to the bottom;
+                  } else {
+                    console.log('Merge in new data.. Muthafucka', i, p, e, list[e], buffer.elements[i], buffer.elements[p]);
+
+                    buffer.elements[p].scope[itemName] = list[e];
+                    buffer.elements[p].scope.$index = e;
+                    buffer.elements[p].scope.$height = row.height;
+                    buffer.elements[p].scope.$coords = { x:x, y:y };
+                    //
+                    $animate.move(buffer.elements[p].clone, wrapper.el);
+                  }
                 } else {
-
-                  e = itemIndexFromRow(buffer.top) + i;
-                  p = getRelativeBufferPosition(e);
-
-                  (p % columns === 0) ? r++ : null;
-
-                  x = (p % columns) * (container.width / columns);
-                  y = r * row.height;
+                  console.log('Creating a new item..... MUTHAFUCKA');
 
                   var newItem = {};
                   newItem.scope = scope.$new();
                   newItem.scope[itemName] = list[e];
                   newItem.scope.$index = e;
                   newItem.scope.$height = row.height;
-                  newItem.scope.$coords = { x:x, y:y }
+                  newItem.scope.$coords = { x:x, y:y };
                   newItem.scope.$visible = false;
                   newItem.clone = $transclude(newItem.scope, cloneElement);
                   buffer.elements[i] = newItem;
-
-                  // TODO: We should be able to position this without a watcher on the individual scope
-                  //renderElement(p, x, y);
                 }
 
+                // TODO: We should be able to position this without a watcher on the individual scope
+                //renderElement(p, x, y);
               }
             }
 
@@ -875,7 +936,6 @@
             buffer.bottom = buffer.top + buffer.rows || buffer.top + BUFFER_ROWS * COLUMNS;
             buffer.yBottom = buffer.bottom * row.height || (buffer.top + BUFFER_ROWS * COLUMNS) * ROW_HEIGHT;
             buffer.distance = (buffer.rows - view.rows) > 0 ? buffer.rows - view.rows : 0;
-            console.log('Calculating buffer', buffer.top, buffer.bottom, buffer.rows, buffer.size, view.rows, buffer.distance, container.height, row.height);
           }
 
           function clearElements() {
