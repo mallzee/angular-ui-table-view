@@ -858,7 +858,6 @@
             if (list) {
               wrapper.rows = ((list.length + (list.length % columns)) / columns);
               wrapper.height = wrapper.rows * row.height;
-
               wrapper.el.css('height', wrapper.height + 'px');
               iscroll.refresh();
             }
