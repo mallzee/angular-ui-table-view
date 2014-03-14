@@ -217,40 +217,9 @@
           // Setup the table view
           initialise(scope, attributes);
 
-          /**
-           * Delete an item from this table list
-           * @param index
-           */
-          scope.deleteItem = function (index) {
-            // Remove the item from the list
-            //scope.item = list.splice(index, 1)[0];
-            console.log('Deleting ' + index, scope.item, buffer);
-
-            // If we're at the bottom edge of the buffer.
-            // We need to reduce the buffer indexes by the amount deleted
-            if (buffer.atEdge === EDGE_BOTTOM) {
-              //console.log('Delete on bottom edge');
-              buffer.top--;
-              buffer.bottom--;
-            }
-
-            if (attributes.onDelete) {
-              scope.$eval(attributes.onDelete + '(item)');
-            }
-            refresh();
-          };
-
           // The master list of items has changed. Recalculate the virtual list
           scope.$watchCollection(attributes.list, function (newList) {
             list = newList ? newList : [];
-            console.log('List changed', list.length);
-            /*for(var i = 0; i < buffer.elements.length; i++) {
-              var invalid = !angular.equals(buffer.elements[i].scope[itemName], newList[buffer.top + i]);
-              if (invalid) {
-                console.log('Invalidating element', buffer.elements[i].scope[itemName]);
-                $animate.move(buffer.elements[i].clone, wrapper.el);
-              }
-            }*/
             refresh();
           });
 
@@ -311,7 +280,6 @@
 
             if (attributes.viewParams) {
               scope.$watch(attributes.viewParams, function (view) {
-                console.log('View params change', view);
                 row.height = view.rowHeight ? view.rowHeight : ROW_HEIGHT;
                 columns = view.columns ? view.columns : COLUMNS;
                 buffer.rows = view.rows ? view.rows : BUFFER_ROWS;
@@ -407,7 +375,6 @@
               // Keep a copy of the original elements length as we'll be adjusting this as we delete
               var elementsLength = buffer.elements.length;
               for(var i = elementsLength - 1; i >= buffer.size; i--) {
-                console.log('Destroying ', i, elementsLength);
                 destroyItem(i);
               }
             }
@@ -421,7 +388,6 @@
               // If we're changing the item list. Remove any buffered items that are not required
               // because the list is smaller than the buffer.
               if (items && i > items.length) {
-                console.log('Destroying item');
                 destroyItem(i);
               } else {
 
@@ -432,9 +398,7 @@
                 (p % columns === 0) ? r++ : null;
 
                 // If we have an element cached and it contains the same info, leave it as it is.
-                console.log(e, p, buffer.elements[p], list[e]);
                 if (buffer.elements[p] && angular.equals(list[e], buffer.elements[p].scope[itemName])) {
-                  console.log('Keep this item muthafucka');
                   continue;
                 }
 
@@ -447,10 +411,7 @@
                   // position and send this block to the bottom to be reused.
                   for(var k = i; k < buffer.size; k++) {
                     if (buffer.elements[k] && angular.equals(list[e], buffer.elements[k].scope[itemName])) {
-                      console.log('Found this item futher down the line muthafucka');
-                      //buffer.elements[k].scope[itemName] = list[e];
                       buffer.elements[k].scope.$index = e;
-                      //buffer.elements[k].scope.$height = row.height;
                       buffer.elements[k].scope.$coords = { x:x, y:y };
                       // Cut out the elements in between the invalid item and this found one
                       // and move them to the end.
@@ -458,28 +419,22 @@
                       // Move the found element into the correct place in the buffer elements array
                       buffer.elements.move(k, p);
                       $animate.move(buffer.elements[p].clone, wrapper.el);
-
-                      //buffer.elements.splice(p, 0, buffer.elements.splice(k, 1)[0]);
                       found = true;
                     }
                   }
 
-                  if (found) {
-                    // We found this item further in the buffer. Move this buffered element to the bottom;
-                  } else {
-                    console.log('Merge in new data.. Muthafucka', i, p, e, list[e], buffer.elements[i], buffer.elements[p]);
-
+                  if (!found) {
                     buffer.elements[p].scope[itemName] = list[e];
                     buffer.elements[p].scope.$index = e;
                     buffer.elements[p].scope.$height = row.height;
                     buffer.elements[p].scope.$coords = { x:x, y:y };
-                    //
+
                     $animate.move(buffer.elements[p].clone, wrapper.el);
                   }
                 } else {
-                  console.log('Creating a new item..... MUTHAFUCKA');
 
                   var newItem = {};
+
                   newItem.scope = scope.$new();
                   newItem.scope[itemName] = list[e];
                   newItem.scope.$index = e;
@@ -606,7 +561,6 @@
            * Calculates if a render is required.
            */
           function isRenderRequired () {
-            //console.log('Render required?', (scroll.direction === SCROLL_DOWN && buffer.atEdge !== EDGE_BOTTOM && view.deadZone === false) && (scroll.directionChange || view.ytChange), !(view.deadZone !== false && view.deadZoneChange === false), view.deadZone, view.deadZoneChange);
             return(
               ((scroll.direction === SCROLL_UP && buffer.atEdge !== EDGE_TOP && view.deadZone === false) && (scroll.directionChange || view.ytChange)) ||
                 ((scroll.direction === SCROLL_DOWN && buffer.atEdge !== EDGE_BOTTOM && view.deadZone === false) && (scroll.directionChange || view.ytChange)) || !(view.deadZone !== false && view.deadZoneChange === false)
@@ -644,8 +598,6 @@
             scroll.yDistance = Math.abs(scroll.row - _scroll.row);
             scroll.yChange = (scroll.yDistance > 0);
 
-            // scroll.bottomIndex = Math.abs(Math.floor((container.height + y) / row.height));
-
             // Update direction
             scroll.direction = (scroll.yDelta >= 0) ? SCROLL_DOWN : SCROLL_UP;
             scroll.directionChange = (scroll.direction !== _scroll.direction);
@@ -678,7 +630,6 @@
             // Calculate if there have been index changes on either side of the view
             view.ytChange = (view.top !== _view.top);
             view.ybChange = (view.bottom !== _view.bottom);
-            //console.log('View model', view.top, view.bottom, view.rows, buffer.size);
           }
 
           /**
@@ -738,15 +689,12 @@
               x = (p % columns) * (container.width / columns);
               y = r * row.height;
 
-//console.log('Scrolling up', end, distance, p, i, r, x, y, buffer.distance, view.rows);
-
               var coords = {
                 x: x,
                 y: y
               };
               var index = start * columns + i;
               updateItem(p, itemsToMerge[i], coords, index);
-              //renderElement(p, x, y);
 
               (p % columns === 0) ? r-- : null;
 
@@ -772,16 +720,12 @@
               x = (p % columns) * (container.width / columns);
               y = r * row.height;
 
-//console.log('Scrolling down', start, distance, p, i, x, y, r);
-
               var coords = {
                 x: x,
                 y: y
               };
               var index = start * columns + i;
-              //console.log('Merging', itemsToMerge[i], 'with', items[p]);
               updateItem(p, itemsToMerge[i], coords, index);
-              //renderElement(p, x, y);
             }
           }
 
@@ -823,14 +767,12 @@
                   start = buffer.top;
                   end = _buffer.top;
                   distance = Math.abs((end - start) * columns);
-//console.log('Distance up', distance, start, end, columns, buffer.top, buffer.bottom);
                   scrollingUp(start, distance);
                   break;
                 case SCROLL_DOWN:
                   start = _buffer.bottom;
                   end = buffer.bottom;
                   distance = Math.abs((end - start) * columns);
-//console.log('Distance down', distance, start, end, columns, buffer.top, buffer.bottom);
                   scrollingDown(start, distance);
                   break;
               }
@@ -844,12 +786,8 @@
            * @param y
            */
           function renderElement (index, x, y) {
-
-            //scope.$evalAsync(function () {
             var element = angular.element(elements[index]);
-//console.log('Rendering element', index, x, y);
             element.css('-webkit-transform', 'translate3d(' + x + 'px, ' + y + 'px, 0px)');
-            //});
           }
 
           /**
@@ -921,7 +859,6 @@
               wrapper.rows = ((list.length + (list.length % columns)) / columns);
               wrapper.height = wrapper.rows * row.height;
 
-//console.log('Updating wrapper', wrapper.height, (list.length % columns));
               wrapper.el.css('height', wrapper.height + 'px');
               iscroll.refresh();
             }
