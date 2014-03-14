@@ -570,6 +570,7 @@
            * @returns {boolean|*}
            */
           function isTriggerRequired () {
+            console.log(view.triggerZone, view.triggerZoneChange);
             return (view.triggerZone !== false && view.triggerZoneChange);
           }
 
@@ -618,7 +619,7 @@
             view.atEdge = !(view.top > 0 && view.bottom < list.length - 1);
 
             // Calculate if we're in a trigger zone and if there's been a change.
-            view.triggerZone = (view.yTop < trigger.distance * row.height) ? EDGE_TOP : view.yBottom > ((list.length - trigger.distance - 1) * row.height) ? EDGE_BOTTOM : false;
+            view.triggerZone = (view.yTop < trigger.distance * row.height) ? EDGE_TOP : view.yBottom > (((list.length / columns) - trigger.distance - 1) * row.height) ? EDGE_BOTTOM : false;
             view.triggerZoneChange = (view.triggerZone !== _view.triggerZone);
 
             // Calculate if we're in a dead zone and if there's been a change.
@@ -809,6 +810,7 @@
            * Trigger a function supplied to the directive
            */
           function triggerEdge () {
+            console.log('Triggering', view.triggerZone);
             switch (view.triggerZone) {
               case EDGE_TOP:
                 triggerTop();

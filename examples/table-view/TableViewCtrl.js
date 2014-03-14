@@ -29,7 +29,9 @@ angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', 'Res
   $scope.changeList = function () {
     console.log('Changing list');
     products.getList().then(function(data) {
-      $scope.list = data;
+      angular.forEach(data, function (item) {
+        $scope.list.push(item);
+      });
     });
   };
 
