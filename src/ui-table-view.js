@@ -371,7 +371,6 @@
             // We have more elements than specified by our buffer parameters.
             // Lets get rid of any un needed elements
             if (buffer.elements.length > buffer.size) {
-              console.log('We need to destroy some shit!', buffer.elements.length, buffer.size);
               // Keep a copy of the original elements length as we'll be adjusting this as we delete
               var elementsLength = buffer.elements.length;
               for(var i = elementsLength - 1; i >= buffer.size; i--) {
@@ -383,7 +382,6 @@
             // including adding any missing elements that may be required
             var p, x, y, e, r = buffer.top - 1, found;
 
-            console.log('Buffer deets', buffer.elements.length, buffer.size);
             for (var i = 0; i < buffer.size; i++) {
               // If we're changing the item list. Remove any buffered items that are not required
               // because the list is smaller than the buffer.
