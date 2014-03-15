@@ -233,23 +233,22 @@
           var y, updating = false;
           iscroll.on('scroll', function () {
             y = Math.abs(this.y);
-            //tick();
-            update();
+            tick();
           });
 
           function tick() {
             if (!updating) {
               // Recall the loop
-              //$$animateReflow(function() {
+              $$animateReflow(function() {
                 update();
-              //});
+              });
             }
             updating = true;
           }
 
           function update() {
-            updating = false;
             setScrollPosition(y);
+            updating = false;
           }
 
 

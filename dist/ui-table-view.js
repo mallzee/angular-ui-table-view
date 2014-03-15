@@ -48,7 +48,7 @@
       return {
         restrict: 'A',
         link: function(scope, element) {
-          scope.$watch('$coords', function (coords) {
+          /*scope.$watch('$coords', function (coords) {
             if (coords) {
               $timeout(function () {
                 element.css({
@@ -58,7 +58,7 @@
                 });
               });
             }
-          });
+          });*/
         }
       };
     })
@@ -247,8 +247,8 @@
           }
 
           function update() {
-            updating = false;
             setScrollPosition(y);
+            updating = false;
           }
 
 
@@ -340,6 +340,7 @@
             buffer.elements[elIndex].scope[itemName] = item;
             buffer.elements[elIndex].scope.$coords = coords;
             buffer.elements[elIndex].scope.$index = index;
+            repositionElement(buffer.elements[elIndex]);
             $animate.move(buffer.elements[elIndex].clone, wrapper.el);
           }
 
@@ -417,6 +418,7 @@
                       // Move the found element into the correct place in the buffer elements array
                       buffer.elements.move(k, p);
                       $animate.move(buffer.elements[p].clone, wrapper.el);
+                      repositionElement(buffer.elements[p]);
                       found = true;
                     }
                   }
@@ -426,8 +428,8 @@
                     buffer.elements[p].scope.$index = e;
                     buffer.elements[p].scope.$height = row.height;
                     buffer.elements[p].scope.$coords = { x:x, y:y };
-
                     $animate.move(buffer.elements[p].clone, wrapper.el);
+                    repositionElement(buffer.elements[p]);
                   }
                 } else {
 
@@ -441,10 +443,8 @@
                   newItem.scope.$visible = false;
                   newItem.clone = $transclude(newItem.scope, cloneElement);
                   buffer.elements[i] = newItem;
+                  setupElement(buffer.elements[i]);
                 }
-
-                // TODO: We should be able to position this without a watcher on the individual scope
-                //renderElement(p, x, y);
               }
             }
 
@@ -778,15 +778,29 @@
             }
           }
 
+
+          function setupElement (element) {
+            var el = getBlockElements(element.clone);
+            console.log('Setup element', element, el, element.scope.$coords.x, element.scope.$coords.y);
+            angular.element(el[1]).css({
+              'webkitTransform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
+              position: 'absolute',
+              height: element.scope.$height + 'px'
+            });
+          }
+
           /**
            * Set a given buffered element to the given y coordinate
            * @param index
            * @param y
            */
-          function renderElement (index, x, y) {
-            var element = angular.element(elements[index]);
-            element.css('-webkit-transform', 'translate3d(' + x + 'px, ' + y + 'px, 0px)');
+          function repositionElement (element) {
+            var el = getBlockElements(element.clone);
+            console.log('Positioning element', element, el, element.scope.$coords.x, element.scope.$coords.y);
+            angular.element(el[1]).css('-webkit-transform', 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)')
           }
+
+
 
           /**
            * Hide an element
