@@ -570,7 +570,6 @@
            * @returns {boolean|*}
            */
           function isTriggerRequired () {
-            console.log(view.triggerZone, view.triggerZoneChange);
             return (view.triggerZone !== false && view.triggerZoneChange);
           }
 
@@ -810,7 +809,6 @@
            * Trigger a function supplied to the directive
            */
           function triggerEdge () {
-            console.log('Triggering', view.triggerZone);
             switch (view.triggerZone) {
               case EDGE_TOP:
                 triggerTop();
