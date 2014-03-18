@@ -26,17 +26,23 @@ angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', 'Res
 
   var products = Restangular.all('products');
 
+  var page = 0, loading = false;
   $scope.changeList = function () {
     console.log('Changing list');
-    products.getList().then(function(data) {
+    if (loading) {
+      return;
+    }
+    loading = true;
+    products.getList({limit:10, page: page++}).then(function(data) {
       angular.forEach(data, function (item) {
         $scope.list.push(item);
       });
+      loading = false;
     });
   };
 
   $scope.deleteMe = function(index) {
-    console.log('Delete Me', index);
+    console.log('Delete Me', index, $scope.list.length);
     $scope.list.splice(index, 1);
   };
 

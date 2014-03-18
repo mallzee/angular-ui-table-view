@@ -44,24 +44,6 @@
    * TODO: Add in some docs on how to use this angular module and publish them on GitHub pages.
    */
   angular.module('mallzee.ui-table-view', ['ngAnimate'])
-    .directive('mlzUiTableViewItem', function ($timeout) {
-      return {
-        restrict: 'A',
-        link: function(scope, element) {
-          /*scope.$watch('$coords', function (coords) {
-            if (coords) {
-              $timeout(function () {
-                element.css({
-                  position: 'absolute',
-                  height: scope.$height + 'px',
-                  webkitTransform: 'translate3d(' + coords.x + 'px, ' + coords.y + 'px, 0px)'
-                });
-              });
-            }
-          });*/
-        }
-      };
-    })
     .directive('mlzUiTableView', ['$window', '$timeout', '$log', '$animate', '$$animateReflow', function ($window, $timeout, $log, $animate, $$animateReflow) {
       return {
         restrict: 'E',
@@ -81,7 +63,7 @@
             EDGE_BOTTOM = 'bottom',
             SCROLL_UP = 'up',
             SCROLL_DOWN = 'down',
-            TRIGGER_DISTANCE = 5;
+            TRIGGER_DISTANCE = 1;
 
           var list = [], items = [], itemName = 'item',
 
@@ -219,7 +201,7 @@
 
           // The master list of items has changed. Recalculate the virtual list
           scope.$watchCollection(attributes.list, function (newList) {
-            list = newList ? newList : [];
+            list = newList || [];
             refresh();
           });
 
@@ -280,9 +262,9 @@
 
             if (attributes.viewParams) {
               scope.$watch(attributes.viewParams, function (view) {
-                row.height = view.rowHeight ? view.rowHeight : ROW_HEIGHT;
-                columns = view.columns ? view.columns : COLUMNS;
-                buffer.rows = view.rows ? view.rows : BUFFER_ROWS;
+                row.height = view.rowHeight || ROW_HEIGHT;
+                columns = view.columns || COLUMNS;
+                buffer.rows = view.rows || BUFFER_ROWS;
                 buffer.size = buffer.rows * columns;
                 refresh();
               }, true);
@@ -321,6 +303,9 @@
             generateBufferedItems();
 
             calculateDimensions();
+            updateViewModel();
+            triggerEdge();
+            //setScrollPosition(scroll.y);
 
             iscroll.refresh();
           }
@@ -365,10 +350,6 @@
             // TODO: Handle the case where the list could be smaller than the buffer.
             angular.copy(list.slice(itemIndexFromRow(buffer.top), itemIndexFromRow(buffer.bottom)), items);
 
-            if (list.length <= 0 || items.length <= 0) {
-              return false;
-            }
-
             // We have more elements than specified by our buffer parameters.
             // Lets get rid of any un needed elements
             if (buffer.elements.length > buffer.size) {
@@ -384,10 +365,15 @@
             var p, x, y, e, r = buffer.top - 1, found;
 
             for (var i = 0; i < buffer.size; i++) {
+
+              if (items.length < buffer.size) {}
               // If we're changing the item list. Remove any buffered items that are not required
               // because the list is smaller than the buffer.
-              if (items && i > items.length) {
-                destroyItem(i);
+              if (items && i >= items.length) {
+                // TODO: Refactor this as it's a bit pish
+                if (buffer.elements[i]) {
+                  destroyItem(i);
+                }
               } else {
 
                 found = false;
@@ -459,10 +445,6 @@
             iscroll.scrollTo(0, 0, 1000, IScroll.utils.ease.elastic);
           }
 
-          function getYFromIndex (index) {
-            return index * row.height;
-          }
-
           /**
            * Update the scroll model with a scroll offset.
            */
@@ -498,10 +480,8 @@
             // Render the current buffer
             render();
 
-            // Do we need to call one of the edge trigger because we're in the zone?
-            if (isTriggerRequired()) {
-              triggerEdge();
-            }
+            // Edge trigger because we might be in the zone?
+            triggerEdge();
 
             // Prep for the next pass
             setupNextTick();
@@ -618,8 +598,8 @@
             view.atEdge = !(view.top > 0 && view.bottom < list.length - 1);
 
             // Calculate if we're in a trigger zone and if there's been a change.
-            view.triggerZone = (view.yTop < trigger.distance * row.height) ? EDGE_TOP : view.yBottom > (((list.length / columns) - trigger.distance - 1) * row.height) ? EDGE_BOTTOM : false;
-            view.triggerZoneChange = (view.triggerZone !== _view.triggerZone);
+            view.triggerZone = view.yBottom > (((list.length / columns) - trigger.distance - 1) * row.height) ? EDGE_BOTTOM : (view.yTop < trigger.distance * row.height) ? EDGE_TOP : false;
+            view.triggerZoneChange = (view.triggerZone !== _view.triggerZone) || (list.length / columns) < (trigger.distance * 2) ;
 
             // Calculate if we're in a dead zone and if there's been a change.
             view.deadZone = (view.yTop < row.height) ? EDGE_TOP : view.yBottom > ((list.length - 1) * row.height) ? EDGE_BOTTOM : false;
@@ -781,7 +761,6 @@
 
           function setupElement (element) {
             var el = getBlockElements(element.clone);
-            console.log('Setup element', element, el, element.scope.$coords.x, element.scope.$coords.y);
             angular.element(el[1]).css({
               'webkitTransform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
               position: 'absolute',
@@ -796,11 +775,8 @@
            */
           function repositionElement (element) {
             var el = getBlockElements(element.clone);
-            console.log('Positioning element', element, el, element.scope.$coords.x, element.scope.$coords.y);
             angular.element(el[1]).css('-webkit-transform', 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)')
           }
-
-
 
           /**
            * Hide an element
@@ -823,6 +799,10 @@
            * Trigger a function supplied to the directive
            */
           function triggerEdge () {
+            if (!isTriggerRequired()) {
+              return false;
+            }
+
             switch (view.triggerZone) {
               case EDGE_TOP:
                 triggerTop();
