@@ -40,6 +40,35 @@
     return angular.element(elements);
   }
 
+  function getItemElement(nodes) {
+    var startNode = nodes[0],
+      endNode = nodes[nodes.length - 1];
+
+    if (startNode === endNode) {
+      return angular.element(startNode);
+    }
+
+    var element = startNode;
+
+    do {
+      if (element.classList && element.classList.contains('mlz-ui-table-view-item')) {
+        return angular.element(element);
+      }
+      element = element.nextSibling;
+    } while (element !== endNode);
+
+    return false;
+  }
+
+  window.requestAnimFrame = (function(){
+    return  window.requestAnimationFrame ||
+      window.webkitRequestAnimationFrame ||
+      window.mozRequestAnimationFrame    ||
+      function( callback ){
+        window.setTimeout(callback, 1000 / 60);
+      };
+  })();
+
   /**
    * TODO: Add in some docs on how to use this angular module and publish them on GitHub pages.
    */
@@ -55,7 +84,7 @@
         template: '<div class="mlz-ui-table-view-wrapper" ng-transclude></div>',
         link: function (scope, element, attributes, ctrl, $transclude) {
 
-          var BUFFER_ROWS = 10,
+          var BUFFER_ROWS = 20,
             COLUMNS = 1,
             ROW_HEIGHT = 40,
             ROW_WIDTH = '100%',
@@ -67,6 +96,9 @@
 
           var list = [], items = [], itemName = 'item',
 
+            model = {
+
+            },
           // Model the main container for the view table
             container = {
               height: 0,
@@ -202,6 +234,7 @@
           // The master list of items has changed. Recalculate the virtual list
           scope.$watchCollection(attributes.list, function (newList) {
             list = newList || [];
+            //console.log('New list', list.length);
             refresh();
           });
 
@@ -220,10 +253,13 @@
 
           function tick() {
             if (!updating) {
-              // Recall the loop
-              $$animateReflow(function() {
+              requestAnimFrame(function(){
                 update();
+//                self.scope.$apply(self.animateFrame.bind(self));
               });
+              // Recall the loop
+              //$$animateReflow(function() {
+              //});
             }
             updating = true;
           }
@@ -293,13 +329,14 @@
             });
 
             calculateContainer();
+            //refresh();
 
           }
 
           function refresh () {
             // TODO: Implment a way of storing the position in LS so we can restore to there
             //container.el.prop('scrollTop', getYFromIndex(buffer.top));
-
+            updateBufferModel();
             generateBufferedItems();
 
             calculateDimensions();
@@ -316,6 +353,12 @@
            * @param clone
            */
           function cloneElement(clone) {
+            clone.addClass('mlz-ui-table-view-item');
+            /*clone.css({
+              //'webkitTransform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
+              position: 'absolute'
+              //height: element.scope.$height + 'px'
+            });*/
             clone[clone.length++] = document.createComment(' end mlzTableViewItem: ' + attributes.list + ' ');
             $animate.enter(clone, wrapper.el);
           }
@@ -349,7 +392,7 @@
 
             // TODO: Handle the case where the list could be smaller than the buffer.
             angular.copy(list.slice(itemIndexFromRow(buffer.top), itemIndexFromRow(buffer.bottom)), items);
-
+//console.log(buffer.top, buffer.bottom, items);
             // We have more elements than specified by our buffer parameters.
             // Lets get rid of any un needed elements
             if (buffer.elements.length > buffer.size) {
@@ -760,8 +803,9 @@
 
 
           function setupElement (element) {
-            var el = getBlockElements(element.clone);
-            angular.element(el[1]).css({
+            //var el = getBlockElements(element.clone);
+            var el = getItemElement(element.clone);
+            el.css({
               'webkitTransform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
               position: 'absolute',
               height: element.scope.$height + 'px'

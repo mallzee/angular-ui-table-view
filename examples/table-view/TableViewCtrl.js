@@ -33,7 +33,7 @@ angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', 'Res
       return;
     }
     loading = true;
-    products.getList({limit:10, page: page++}).then(function(data) {
+    products.getList({limit:50, page: page++}).then(function(data) {
       angular.forEach(data, function (item) {
         $scope.list.push(item);
       });

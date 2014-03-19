@@ -15,13 +15,13 @@ describe('UITableView', function () {
 
   var html =
     '<mlz-ui-table-view style="height:480px; width: 320px"'
-      + 'list="list" view="view"'
+      + 'list="list" view-params="view"'
       + 'trigger-bottom="bottomTrigger()" '
-      + 'trigger-top="topTrigger()">'
-      +   '<div mlz-ui-table-view-item>'
+      + 'trigger-top="topTrigger()"> '
+      +   '<div> '
       +     '<dt ng-bind="item.name"></dt>'
       +     '<dd ng-bind="item.details"></dd>'
-      +   '</div>'
+      +   '</div> '
       + '</mlz-ui-table-view>';
 
   beforeEach(module("mallzee.ui-table-view"));
@@ -66,7 +66,7 @@ describe('UITableView', function () {
       scope = element.scope();
       timeout = $timeout;
 
-      scope.$digest();
+      $rootScope.$digest();
 
       //$timeout.flush();
 
@@ -74,7 +74,9 @@ describe('UITableView', function () {
 
       container = element;
       wrapper = element.children();
-      elements = element.children().children();
+
+        elements = element.children().children();
+        //console.log(elements, wrapper);
 
     });
   }
@@ -126,7 +128,7 @@ describe('UITableView', function () {
       expect(elements.length, 'Elements length').to.equal(10);
     });
 
-    it('Should have the correct element the top level', function () {
+    it('should have the correct element the top level', function () {
       expect(container.prop('tagName')).to.equal('MLZ-UI-TABLE-VIEW');
     });
 
@@ -139,7 +141,7 @@ describe('UITableView', function () {
 
       it('should have the correct wrapper classes and properties', function () {
         expect(wrapper.hasClass('mlz-ui-table-view-wrapper')).to.be.true;
-        expect(wrapper.css('position')).to.equal('relative');
+        //expect(wrapper.css('position')).to.equal('relative');
       });
 
       it('should have the correct calculated wrapper height', function () {
