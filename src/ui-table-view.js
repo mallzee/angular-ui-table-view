@@ -16,6 +16,7 @@
     return this; // for testing purposes
   };
 
+
   /**
    * Return the DOM siblings between the first and last node in the given array.
    * @param {Array} array like object
@@ -73,7 +74,7 @@
    * TODO: Add in some docs on how to use this angular module and publish them on GitHub pages.
    */
   angular.module('mallzee.ui-table-view', ['ngAnimate'])
-    .directive('mlzUiTableView', ['$window', '$timeout', '$log', '$animate', '$$animateReflow', function ($window, $timeout, $log, $animate, $$animateReflow) {
+    .directive('mlzUiTableView', ['$window', '$timeout', '$log', '$animate', function ($window, $timeout, $log, $animate) {
       return {
         restrict: 'E',
         transclude: true,
@@ -217,24 +218,12 @@
           container.el = element;
           wrapper.el = element.children();
 
-          // TODO: Pull in the parts of iscroll we need someday and ditch the dependancy
-          var iscroll = new IScroll(element[0], {
-            useTransform: true,
-            useTransition: false,
-            HWCompositing: false,
-
-            probeType: 3,
-            mouseWheel: true
-            //snap: true
-          });
-
           // Setup the table view
           initialise(scope, attributes);
 
           // The master list of items has changed. Recalculate the virtual list
           scope.$watchCollection(attributes.list, function (newList) {
             list = newList || [];
-            //console.log('New list', list.length);
             refresh();
           });
 
@@ -246,23 +235,10 @@
            */
           // When we scroll. Lets work some magic.
           var y, updating = false;
-          iscroll.on('scroll', function () {
-            y = Math.abs(this.y);
-            tick();
+          element.on('scroll', function () {
+            y = element.prop('scrollTop');
+            update();
           });
-
-          function tick() {
-            if (!updating) {
-              requestAnimFrame(function(){
-                update();
-//                self.scope.$apply(self.animateFrame.bind(self));
-              });
-              // Recall the loop
-              //$$animateReflow(function() {
-              //});
-            }
-            updating = true;
-          }
 
           function update() {
             setScrollPosition(y);
@@ -282,7 +258,11 @@
 
             element.css({
               display: 'block',
-              overflow: 'hidden'
+              overflow: 'auto'
+            });
+
+            wrapper.el.css({
+              position: 'relative'
             });
 
             _scroll = angular.copy(scroll);
@@ -323,28 +303,21 @@
             /**
              * Add event listeners
              */
-            // The status bar has been tapped. To the top with ye!
+              // The status bar has been tapped. To the top with ye!
             $window.addEventListener('statusTap', function () {
               scrollToTop();
             });
 
             calculateContainer();
-            //refresh();
-
           }
 
           function refresh () {
-            // TODO: Implment a way of storing the position in LS so we can restore to there
-            //container.el.prop('scrollTop', getYFromIndex(buffer.top));
             updateBufferModel();
             generateBufferedItems();
 
             calculateDimensions();
             updateViewModel();
             triggerEdge();
-            //setScrollPosition(scroll.y);
-
-            iscroll.refresh();
           }
 
           /**
@@ -354,11 +327,6 @@
            */
           function cloneElement(clone) {
             clone.addClass('mlz-ui-table-view-item');
-            /*clone.css({
-              //'webkitTransform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
-              position: 'absolute'
-              //height: element.scope.$height + 'px'
-            });*/
             clone[clone.length++] = document.createComment(' end mlzTableViewItem: ' + attributes.list + ' ');
             $animate.enter(clone, wrapper.el);
           }
@@ -368,8 +336,20 @@
             buffer.elements[elIndex].scope[itemName] = item;
             buffer.elements[elIndex].scope.$coords = coords;
             buffer.elements[elIndex].scope.$index = index;
-            repositionElement(buffer.elements[elIndex]);
-            $animate.move(buffer.elements[elIndex].clone, wrapper.el);
+          }
+
+          /**
+           * TODO: Tinker with the idea of setting a worker to preload images
+           * based on a given key from the list
+           */
+          function processImagesWorker() {
+            //var blob =
+            //var worker = new Worker(window.URL.createObjectURL(blob));
+            var worker = new Worker('scripts/images.js');
+            worker.onmessage = function (e) {
+              console.log('Image', e.data);
+            };
+            worker.postMessage(list);
           }
 
           /**
@@ -392,7 +372,7 @@
 
             // TODO: Handle the case where the list could be smaller than the buffer.
             angular.copy(list.slice(itemIndexFromRow(buffer.top), itemIndexFromRow(buffer.bottom)), items);
-//console.log(buffer.top, buffer.bottom, items);
+
             // We have more elements than specified by our buffer parameters.
             // Lets get rid of any un needed elements
             if (buffer.elements.length > buffer.size) {
@@ -446,7 +426,7 @@
                       buffer.elements.join(buffer.elements.slice(p, k - p));
                       // Move the found element into the correct place in the buffer elements array
                       buffer.elements.move(k, p);
-                      $animate.move(buffer.elements[p].clone, wrapper.el);
+                      //$animate.move(buffer.elements[p].clone, wrapper.el);
                       repositionElement(buffer.elements[p]);
                       found = true;
                     }
@@ -457,7 +437,7 @@
                     buffer.elements[p].scope.$index = e;
                     buffer.elements[p].scope.$height = row.height;
                     buffer.elements[p].scope.$coords = { x:x, y:y };
-                    $animate.move(buffer.elements[p].clone, wrapper.el);
+                    //$animate.move(buffer.elements[p].clone, wrapper.el);
                     repositionElement(buffer.elements[p]);
                   }
                 } else {
@@ -485,7 +465,7 @@
            * Move the scroller back to the top.
            */
           function scrollToTop () {
-            iscroll.scrollTo(0, 0, 1000, IScroll.utils.ease.elastic);
+            // TODO: Stop momentum scroll before adjusting scrollTop
           }
 
           /**
@@ -520,6 +500,7 @@
             // Update the buffer model
             updateBufferModel();
 
+            //$window.performance.mark('before_render');
             // Render the current buffer
             render();
 
@@ -703,7 +684,7 @@
 
             var itemsToMerge = list.slice((start * columns), (start * columns) + distance);
 
-            var p, x, y, r = start + (distance / columns) - 1;
+            var p, x, y, r = start + (distance / columns) - 1, updates = [];
 
             for (var i = itemsToMerge.length - 1; i >= 0; i--) {
               p = getRelativeBufferPosition((start * columns) + i);
@@ -715,11 +696,20 @@
                 y: y
               };
               var index = start * columns + i;
+              updates.push(p);
               updateItem(p, itemsToMerge[i], coords, index);
 
               (p % columns === 0) ? r-- : null;
 
             }
+
+            requestAnimFrame(function () {
+              scope.$apply(function () {
+                for (var i = 0; i < updates.length; i++) {
+                  repositionElement(buffer.elements[updates[i]]);
+                }
+              });
+            });
           }
 
           /**
@@ -730,7 +720,7 @@
           function scrollingDown (start, distance) {
 
             var itemsToMerge = list.slice((start * columns), (start * columns) + distance);
-            var p, x, y, r = start - 1;
+            var p, x, y, r = start - 1, updates = [];
 
             for (var i = 0; i < itemsToMerge.length; i++) {
 
@@ -746,8 +736,17 @@
                 y: y
               };
               var index = start * columns + i;
+              updates.push(p);
               updateItem(p, itemsToMerge[i], coords, index);
             }
+
+            requestAnimFrame(function () {
+              scope.$apply(function () {
+                for (var i = 0; i < updates.length; i++) {
+                  repositionElement(buffer.elements[updates[i]]);
+                }
+              });
+            });
           }
 
           /**
@@ -779,7 +778,6 @@
                   scrollingDown(start, distance);
                   break;
               }
-              scope.$digest();
             } else {
               // If we've changed the scroll direction.
               // Update the buffer to reflect the direction.
@@ -797,7 +795,6 @@
                   scrollingDown(start, distance);
                   break;
               }
-              scope.$digest();
             }
           }
 
@@ -820,23 +817,6 @@
           function repositionElement (element) {
             var el = getBlockElements(element.clone);
             angular.element(el[1]).css('-webkit-transform', 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)')
-          }
-
-          /**
-           * Hide an element
-           * @param index
-           */
-          function hideElement (index) {
-            var element = angular.element(elements[index]);
-            element.css('visibility', 'hidden');
-          }
-
-          /**
-           * Show an element
-           * @param index
-           */
-          function showElement (index) {
-            elements.css('visibility', 'normal');
           }
 
           /**
@@ -895,7 +875,6 @@
               wrapper.rows = ((list.length + (list.length % columns)) / columns);
               wrapper.height = wrapper.rows * row.height;
               wrapper.el.css('height', wrapper.height + 'px');
-              iscroll.refresh();
             }
           }
 
@@ -920,8 +899,6 @@
             $window.removeEventListener('statusTap');
             container.el.off('scroll');
             clearElements();
-            iscroll.destroy();
-            iscroll = null;
             wrapper.el.remove();
             container.el.remove();
             delete container.el;
