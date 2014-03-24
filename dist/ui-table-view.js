@@ -5,16 +5,17 @@
 (function (window, angular, undefined) {
   'use strict';
 
-  Array.prototype.move = function (old_index, new_index) {
-    if (new_index >= this.length) {
-      var k = new_index - this.length;
+  var move = function (arr, old_index, new_index) {
+    if (new_index >= arr.length) {
+      var k = new_index - arr.length;
       while ((k--) + 1) {
-        this.push(undefined);
+        arr.push(undefined);
       }
     }
-    this.splice(new_index, 0, this.splice(old_index, 1)[0]);
-    return this; // for testing purposes
+    arr.splice(new_index, 0, arr.splice(old_index, 1)[0]);
+    return arr; // for testing purposes
   };
+
 
   /**
    * Return the DOM siblings between the first and last node in the given array.
@@ -256,7 +257,12 @@
           function initialise (scope, attributes) {
 
             element.css({
-              display: 'block'
+              display: 'block',
+              overflow: 'auto'
+            });
+
+            wrapper.el.css({
+              position: 'relative'
             });
 
             _scroll = angular.copy(scroll);
@@ -399,31 +405,44 @@
 
                 (p % columns === 0) ? r++ : null;
 
-                // If we have an element cached and it contains the same info, leave it as it is.
-                if (buffer.elements[p] && angular.equals(list[e], buffer.elements[p].scope[itemName])) {
-                  continue;
-                }
-
                 // Workout the x and y coords of this element
                 x = (p % columns) * (container.width / columns);
                 y = r * row.height;
+
+                // If we have an element cached and it contains the same info, leave it as it is.
+                if (buffer.elements[p] && angular.equals(list[e], buffer.elements[p].scope[itemName])) {
+                  buffer.elements[p].scope.$coords = { x:x, y:y }
+                  //$animate.move(buffer.elements[p].clone, wrapper.el);
+                  repositionElement(buffer.elements[p]);
+
+                  continue;
+                }
 
                 if (buffer.elements[p]) {
                   // Scan the buffer for this item. If it exists we should move that item into this
                   // position and send this block to the bottom to be reused.
                   for(var k = i; k < buffer.size; k++) {
+                    if (found) {
+                      // Update positions of everything else in the buffer
+                      buffer.elements[k].scope.$coords = { x:x, y:y }
+                    }
                     if (buffer.elements[k] && angular.equals(list[e], buffer.elements[k].scope[itemName])) {
                       buffer.elements[k].scope.$index = e;
+                      //buffer.elements[p].scope.$coords = buffer.elements[k].scope.$coords;
                       buffer.elements[k].scope.$coords = { x:x, y:y };
                       // Cut out the elements in between the invalid item and this found one
                       // and move them to the end.
-                      buffer.elements.join(buffer.elements.slice(p, k - p));
+                      //buffer.elements.join(buffer.elements.slice(p, k - p));
                       // Move the found element into the correct place in the buffer elements array
-                      buffer.elements.move(k, p);
+                      move(buffer.elements, k, p);
                       //$animate.move(buffer.elements[p].clone, wrapper.el);
-                      repositionElement(buffer.elements[p]);
+                      //repositionElement(buffer.elements[p]);
+                      //repositionElement(buffer.elements[k]);
+                      console.log('Found element', buffer.elements[p].scope.$index);
                       found = true;
+                      //break;
                     }
+
                   }
 
                   if (!found) {
@@ -432,8 +451,10 @@
                     buffer.elements[p].scope.$height = row.height;
                     buffer.elements[p].scope.$coords = { x:x, y:y };
                     //$animate.move(buffer.elements[p].clone, wrapper.el);
-                    repositionElement(buffer.elements[p]);
+                    //repositionElement(buffer.elements[p]);
                   }
+                  repositionElement(buffer.elements[p]);
+
                 } else {
 
                   var newItem = {};

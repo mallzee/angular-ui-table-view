@@ -10,14 +10,15 @@
     <button ng-click="changeList()">Change List</button>
     <button ng-click="generateArray()">Generate Array</button>
     <section>
-        <mlz-ui-table-view list="list" style="width:640px; height: 455px; border: 1px solid #eee" view-params="view" trigger-bottom="changeList()" trigger-top="doStuff()">
+        <mlz-ui-table-view list="list | orderBy:'created_at':true" style="width:640px; height: 455px; border: 1px solid #eee" view-params="view" trigger-bottom="changeList()" trigger-top="doStuff()">
             <div class="item" index="{{$index}}">
-                <img mlz-img ng-src="http://img.mallzee.com/{{item._id}}/w320_h518.jpg" style="width:320px;height:455px" />
+                <!--img mlz-img ng-src="http://img.mallzee.com/{{item._id}}/w320_h518.jpg" style="width:320px;height:455px" /-->
                 <img ng-src="{{item.brand_image_url}}" style="position:absolute;top:10px;left:10px" />
                 <div style="position:absolute;bottom:10px;width:100%;">
                     <dt ng-bind="item.name" style="font-size:16pt;color:#aaa"></dt>
                     <dd ng-bind="item.price | currency:'£'" ></dd>
                     <button ng-click="deleteMe($index)">Delete Me {{$index}} {{$position}}</button>
+                    <button ng-click="updateOrder(item._id)">Update Order {{item._id}} {{$position}}</button>
                 </div>
             </div>
         </mlz-ui-table-view>
