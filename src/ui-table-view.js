@@ -5,15 +5,15 @@
 (function (window, angular, undefined) {
   'use strict';
 
-  Array.prototype.move = function (old_index, new_index) {
-    if (new_index >= this.length) {
-      var k = new_index - this.length;
+  var move = function (arr, old_index, new_index) {
+    if (new_index >= arr.length) {
+      var k = new_index - arr.length;
       while ((k--) + 1) {
-        this.push(undefined);
+        arr.push(undefined);
       }
     }
-    this.splice(new_index, 0, this.splice(old_index, 1)[0]);
-    return this; // for testing purposes
+    arr.splice(new_index, 0, arr.splice(old_index, 1)[0]);
+    return arr; // for testing purposes
   };
 
 
@@ -425,7 +425,7 @@
                       // and move them to the end.
                       buffer.elements.join(buffer.elements.slice(p, k - p));
                       // Move the found element into the correct place in the buffer elements array
-                      buffer.elements.move(k, p);
+                      move(buffer.elements, k, p);
                       //$animate.move(buffer.elements[p].clone, wrapper.el);
                       repositionElement(buffer.elements[p]);
                       found = true;
