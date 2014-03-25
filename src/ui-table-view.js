@@ -95,7 +95,7 @@
             SCROLL_DOWN = 'down',
             TRIGGER_DISTANCE = 1;
 
-          var list = [], items = [], itemName = 'item',
+          var id = 1, list = [], items = [], itemName = 'item',
 
             model = {
 
@@ -196,7 +196,7 @@
               rows: BUFFER_ROWS,
               size: BUFFER_ROWS * COLUMNS, // The buffer size, i.e. how many DOM elements we'll track
               items: [], // The items data that are in the current buffer
-              elements: [], // Reference to that actual DOM elements that make up the buffer //TODO: Remove this from the scope some how
+              //elements: [], // Reference to that actual DOM elements that make up the buffer //TODO: Remove this from the scope some how
               top: 0, // Index position of the top of the buffer.
               bottom: 0, // Index position of the bottom of the buffer.
               left: 0, //TODO: Support x axis
@@ -211,7 +211,8 @@
               reset: false,
               refresh: false
             },
-            _buffer; // Previous tick data
+            _buffer, // Previous tick data
+            elements = [];
 
 
           // Save references to the elements we need access to
@@ -334,9 +335,9 @@
 
 
           function updateItem(elIndex, item, coords, index) {
-            buffer.elements[elIndex].scope[itemName] = item;
-            buffer.elements[elIndex].scope.$coords = coords;
-            buffer.elements[elIndex].scope.$index = index;
+            elements[elIndex].scope[itemName] = item;
+            elements[elIndex].scope.$coords = coords;
+            elements[elIndex].scope.$index = index;
           }
 
           /**
@@ -344,10 +345,10 @@
            * @param index
            */
           function destroyItem(index) {
-            var elementsToRemove = getBlockElements(buffer.elements[index].clone);
+            var elementsToRemove = getBlockElements(elements[index].clone);
             $animate.leave(elementsToRemove);
-            buffer.elements[index].scope.$destroy();
-            buffer.elements.splice(index, 1);
+            elements[index].scope.$destroy();
+            elements.splice(index, 1);
           }
 
           /**
@@ -362,9 +363,9 @@
 
             // We have more elements than specified by our buffer parameters.
             // Lets get rid of any un needed elements
-            if (buffer.elements.length > buffer.size) {
+            if (elements.length > buffer.size) {
               // Keep a copy of the original elements length as we'll be adjusting this as we delete
-              var elementsLength = buffer.elements.length;
+              var elementsLength = elements.length;
               for(var i = elementsLength - 1; i >= buffer.size; i--) {
                 destroyItem(i);
               }
@@ -381,7 +382,7 @@
               // because the list is smaller than the buffer.
               if (items && i >= items.length) {
                 // TODO: Refactor this as it's a bit pish
-                if (buffer.elements[i]) {
+                if (elements[i]) {
                   destroyItem(i);
                 }
               } else {
@@ -397,34 +398,35 @@
                 y = r * row.height;
 
                 // If we have an element cached and it contains the same info, leave it as it is.
-                if (buffer.elements[p] && angular.equals(list[e], buffer.elements[p].scope[itemName])) {
-                  buffer.elements[p].scope.$coords = { x:x, y:y }
-                  //$animate.move(buffer.elements[p].clone, wrapper.el);
-                  repositionElement(buffer.elements[p]);
+                if (elements[p] && angular.equals(list[e], elements[p].scope[itemName])) {
+                  elements[p].scope.$coords = { x:x, y:y }
+                  //$animate.move(elements[p].clone, wrapper.el);
+                  repositionElement(elements[p]);
 
                   continue;
                 }
 
-                if (buffer.elements[p]) {
+                if (elements[p]) {
                   // Scan the buffer for this item. If it exists we should move that item into this
                   // position and send this block to the bottom to be reused.
                   for(var k = i; k < buffer.size; k++) {
                     if (found) {
                       // Update positions of everything else in the buffer
-                      buffer.elements[k].scope.$coords = { x:x, y:y }
+                      elements[k].scope.$coords = { x:x, y:y }
                     }
-                    if (buffer.elements[k] && angular.equals(list[e], buffer.elements[k].scope[itemName])) {
-                      buffer.elements[k].scope.$index = e;
-                      //buffer.elements[p].scope.$coords = buffer.elements[k].scope.$coords;
-                      buffer.elements[k].scope.$coords = { x:x, y:y };
+                    if (elements[k] && angular.equals(list[e], elements[k].scope[itemName])) {
+                      elements[k].scope.$index = e;
+                      //elements[p].scope.$coords = elements[k].scope.$coords;
+                      elements[k].scope.$coords = { x:x, y:y };
                       // Cut out the elements in between the invalid item and this found one
                       // and move them to the end.
-                      //buffer.elements.join(buffer.elements.slice(p, k - p));
+                      //elements.join(elements.slice(p, k - p));
                       // Move the found element into the correct place in the buffer elements array
                       move(buffer.elements, k, p);
                       //$animate.move(buffer.elements[p].clone, wrapper.el);
                       //repositionElement(buffer.elements[p]);
                       //repositionElement(buffer.elements[k]);
+
                       found = true;
                       //break;
                     }
@@ -432,14 +434,14 @@
                   }
 
                   if (!found) {
-                    buffer.elements[p].scope[itemName] = list[e];
-                    buffer.elements[p].scope.$index = e;
-                    buffer.elements[p].scope.$height = row.height;
-                    buffer.elements[p].scope.$coords = { x:x, y:y };
-                    //$animate.move(buffer.elements[p].clone, wrapper.el);
-                    //repositionElement(buffer.elements[p]);
+                    elements[p].scope[itemName] = list[e];
+                    elements[p].scope.$index = e;
+                    elements[p].scope.$height = row.height;
+                    elements[p].scope.$coords = { x:x, y:y };
+                    //$animate.move(elements[p].clone, wrapper.el);
+                    //repositionElement(elements[p]);
                   }
-                  repositionElement(buffer.elements[p]);
+                  repositionElement(elements[p]);
 
                 } else {
 
@@ -452,8 +454,8 @@
                   newItem.scope.$coords = { x:x, y:y };
                   newItem.scope.$visible = false;
                   newItem.clone = $transclude(newItem.scope, cloneElement);
-                  buffer.elements[i] = newItem;
-                  setupElement(buffer.elements[i]);
+                  elements[i] = newItem;
+                  setupElement(elements[i]);
                 }
               }
             }
@@ -707,7 +709,7 @@
             requestAnimFrame(function () {
               scope.$apply(function () {
                 for (var i = 0; i < updates.length; i++) {
-                  repositionElement(buffer.elements[updates[i]]);
+                  repositionElement(elements[updates[i]]);
                 }
               });
             });
@@ -744,7 +746,7 @@
             requestAnimFrame(function () {
               scope.$apply(function () {
                 for (var i = 0; i < updates.length; i++) {
-                  repositionElement(buffer.elements[updates[i]]);
+                  repositionElement(elements[updates[i]]);
                 }
               });
             });
@@ -891,7 +893,7 @@
           }
 
           function clearElements() {
-            for (var i = 0; i < buffer.elements; i++) {
+            for (var i = 0; i < elements; i++) {
               destroyItem(i);
             }
           }
@@ -906,16 +908,16 @@
             if ($window.localStorage.getItem('mlzUITableView.' + id + '.buffer')) {
               buffer = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id + '.buffer'));
             }
-            console.log('Restoring', scroll);
+            console.log('Restoring', scroll.y);
             setupNextTick();
-            container.prop('scrollTop', scroll.y);
+            //setScrollPosition(scroll.y);
+            container.el.prop('scrollTop', scroll.y);
           }
 
           function savePosition () {
             $window.localStorage.setItem('mlzUITableView.' + id + '.scroll', JSON.stringify(scroll));
             $window.localStorage.setItem('mlzUITableView.' + id + '.view', JSON.stringify(view));
             $window.localStorage.setItem('mlzUITableView.' + id + '.buffer', JSON.stringify(buffer));
-            console.log('Saving');
           }
 
           function cleanup () {
@@ -926,7 +928,7 @@
             container.el.remove();
             delete container.el;
             delete wrapper.el;
-            delete buffer.elements;
+            //delete elements;
           }
 
           scope.$on('$destroy', function () {

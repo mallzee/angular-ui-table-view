@@ -156,7 +156,7 @@ describe('UITableView', function () {
 
   describe('scrolling', function () {
 
-    describe('down by one item', function () {
+    describe.only('down by one item', function () {
 
       beforeEach(function () {
         initialiseWithListSet();

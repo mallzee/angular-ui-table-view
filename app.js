@@ -33,7 +33,7 @@ config(['$routeProvider', '$locationProvider', '$compileProvider', 'RestangularP
 
 	$routeProvider.otherwise({redirectTo: appPathRoute+'home'});
 
-    RestangularProvider.setBaseUrl('http://staging.api.mallzee.com');
+    RestangularProvider.setBaseUrl('https://api.mallzee.com');
     RestangularProvider.setRestangularFields({
       id: "_id"
     });
