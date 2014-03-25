@@ -37,7 +37,7 @@ Here's some sample markup to turn your list into a super list
         <dt ng-bind="item.name"></dt>
         <dd ng-bind="item.details"></dd>
     </div>
-</mlz-table-view>
+</mlz-ui-table-view>
 ```
 
 # How does it work?
