@@ -7,7 +7,7 @@ angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', 'Res
 
   $scope.list = [];
   $scope.view = {
-    rows: 10,
+    rows: 100,
     rowHeight: 100,
     columns: 1
   };
