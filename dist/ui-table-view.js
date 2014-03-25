@@ -438,7 +438,7 @@
                       //$animate.move(buffer.elements[p].clone, wrapper.el);
                       //repositionElement(buffer.elements[p]);
                       //repositionElement(buffer.elements[k]);
-                      console.log('Found element', buffer.elements[p].scope.$index);
+                      //console.log('Found element', buffer.elements[p].scope.$index);
                       found = true;
                       //break;
                     }
