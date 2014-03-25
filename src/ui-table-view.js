@@ -318,6 +318,7 @@
 
             updateViewModel();
             triggerEdge();
+            restorePosition();
           }
 
           /**
@@ -796,6 +797,7 @@
                   break;
               }
             }
+            savePosition();
           }
 
 
@@ -892,6 +894,28 @@
             for (var i = 0; i < buffer.elements; i++) {
               destroyItem(i);
             }
+          }
+
+          function restorePosition() {
+            if ($window.localStorage.getItem('mlzUITableView.' + id + '.scroll')) {
+              scroll = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id + '.scroll'));
+            }
+            if ($window.localStorage.getItem('mlzUITableView.' + id + '.view')) {
+              view = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id + '.view'));
+            }
+            if ($window.localStorage.getItem('mlzUITableView.' + id + '.buffer')) {
+              buffer = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id + '.buffer'));
+            }
+            console.log('Restoring', scroll);
+            setupNextTick();
+            container.prop('scrollTop', scroll.y);
+          }
+
+          function savePosition () {
+            $window.localStorage.setItem('mlzUITableView.' + id + '.scroll', JSON.stringify(scroll));
+            $window.localStorage.setItem('mlzUITableView.' + id + '.view', JSON.stringify(view));
+            $window.localStorage.setItem('mlzUITableView.' + id + '.buffer', JSON.stringify(buffer));
+            console.log('Saving');
           }
 
           function cleanup () {
