@@ -7,9 +7,9 @@ angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', 'Res
 
   $scope.list = [];
   $scope.view = {
-    rows: 5,
-    rowHeight: 455,
-    columns: 2
+    rows: 10,
+    rowHeight: 100,
+    columns: 1
   };
 
   $scope.generateArray = function () {
@@ -38,6 +38,14 @@ angular.module('AngularUiTableView').controller('TableViewCtrl', ['$scope', 'Res
         $scope.list.push(item);
       });
       loading = false;
+    });
+  };
+
+  $scope.updateOrder = function(id) {
+    angular.forEach($scope.list, function (item) {
+      if (item._id === id) {
+        item.created_at = new Date().toISOString();
+      }
     });
   };
 
