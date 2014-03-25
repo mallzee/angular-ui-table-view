@@ -814,8 +814,8 @@
            * @param y
            */
           function repositionElement (element) {
-            var el = getBlockElements(element.clone);
-            angular.element(el[1]).css('-webkit-transform', 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)')
+            var el = getItemElement(element.clone);
+            el.css('-webkit-transform', 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)')
           }
 
           /**
