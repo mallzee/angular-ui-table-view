@@ -560,7 +560,7 @@
           function validateBuffer () {
             // If we're breaking the boundaries
             // we need to adjust the buffer accordingly
-            if (buffer.top < 0) {
+            if (buffer.top <= 0) {
               buffer.top = 0;
               buffer.bottom = buffer.rows;
             } else if (buffer.bottom >= list.length) {
