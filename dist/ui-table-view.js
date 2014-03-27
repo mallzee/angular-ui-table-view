@@ -407,8 +407,8 @@
                 if (buffer.elements[p]) {
                   // Scan the buffer for this item. If it exists we should move that item into this
                   // position and send this block to the bottom to be reused.
-                  for(var k = i; k < buffer.size; k++) {
-                    if (found) {
+                  for(var k = p; k < buffer.size; k++) {
+                    if (buffer.elements[k] && found) {
                       // Update positions of everything else in the buffer
                       buffer.elements[k].scope.$coords = { x:x, y:y }
                     }
