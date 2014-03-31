@@ -5,7 +5,7 @@
 
 ### An AngularJS Directive to mimic iOS UITableView to give a fast unlimited length list if items on mobile using ng-repeat
 
-Scrolling on mobile is a pain. Infinite scrolling and large lists are a massive pain! Which is why there is no perfect solution out there, especially in the Angular world. So we developed our own. The core value of the project is to be as simple to utilise as possible while turning long lists of data into seamless, jank free, scrolling lists on mobile. Which in turn means they run shit hot on the desktop.
+Scrolling on mobile is a pain. Infinite scrolling and large lists are a massive pain! Which is why there is no perfect solution out there, especially in the Angular world. So we developed our own. The core value of the project is to be as simple to utilise as possible while turning long lists of data into seamless, jank free, scrolling lists on mobile. Which in turn means they run shit hot on the desktop too!
 
 ## Demo
 http://angular-ui-table-view.mallzee.com
@@ -20,7 +20,6 @@ Add the required files to your projects `index.html` file
 
 ```HTML
 <link rel="stylesheet" href="bower_components/angular-ui-table-view/dist/ui-table-view.css" />
-<script src="bower_components/iscroll/build/iscroll-probe.js"></script>
 <script src="bower_components/angular-ui-table-view/dist/ui-table-view.js"></script>
 ```
 
@@ -42,13 +41,11 @@ Here's some sample markup to turn your list into a super list
 
 # How does it work?
 
-The mlz-ui-table-view directive watches over your big list of items. It creates a subset of the items based the viewport size (You can override the calculated values with a view object). It then injects the correct data into the correct DOM elements, and moves them into position to create the illusion of a stream of items, without killing the performance of your device and or crashing it all together.
+The mlz-ui-table-view directive watches over your big list of items. It creates a subset of the items based the viewport size. You can override the calculated values with a view object. It then injects the correct data from your full list into the correct DOM elements and moves them into position to create the illusion of a stream of items. This is required when displaying large lists to avoid killing the performance of your app, or crashing it all together.
   
 # Why is this different
 
-Currently, this is based off iScroll 5, for now. This has the ability to inject the missing scroll events on mobile devices on momentum scroll. We then use this information to juggle DOM elements rather than deleting and recreating like some other solutions.
-
-DOM elements are limited to the buffer size and are only ever destroyed or created after initialisation when the list becomes smaller than the buffer size, or grows towards the buffer limit. This is what makes the list highly performant. They are moved into the correct place in the list ,using 3d transforms, based on the item index and scroll position and are injected with the correct information from the larger array.
+A lot of solutions out there rely on keeping DOM elements to a minimum, but create and destroy them as is necessary, which is expensive. Here, DOM elements are limited to the buffer size and are only ever destroyed or created after initialisation when the list becomes smaller than the buffer size, or grows towards the buffer limit. This is what makes the list highly performant. They are moved into the correct place in the list using 3d transforms based on the item index and elements scope is injected with the correct information from the larger array.
 
 # Attributes
 
