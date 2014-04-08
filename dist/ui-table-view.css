@@ -7,3 +7,21 @@ mlz-ui-table-view {
 mlz-ui-table-view .mlz-ui-table-view-wrapper {
   position: relative;
 }
+/* Enable scrollbars on Android (optional) */
+::-webkit-scrollbar {
+  border-left: 1px solid #e5e5e5;
+  height: 0;
+  overflow: visible;
+  width: 5px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  background-clip: padding-box;
+  min-height: 28px;
+  border-width: 1px 1px 1px 6px;
+  width: 5px;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+  overflow: visible;
+}

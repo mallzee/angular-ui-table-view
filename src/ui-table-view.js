@@ -314,8 +314,8 @@
           function refresh () {
             updateBufferModel();
             generateBufferedItems();
-
             calculateDimensions();
+
             updateViewModel();
             triggerEdge();
           }
@@ -336,20 +336,6 @@
             buffer.elements[elIndex].scope[itemName] = item;
             buffer.elements[elIndex].scope.$coords = coords;
             buffer.elements[elIndex].scope.$index = index;
-          }
-
-          /**
-           * TODO: Tinker with the idea of setting a worker to preload images
-           * based on a given key from the list
-           */
-          function processImagesWorker() {
-            //var blob =
-            //var worker = new Worker(window.URL.createObjectURL(blob));
-            var worker = new Worker('scripts/images.js');
-            worker.onmessage = function (e) {
-              console.log('Image', e.data);
-            };
-            worker.postMessage(list);
           }
 
           /**
@@ -421,8 +407,8 @@
                 if (buffer.elements[p]) {
                   // Scan the buffer for this item. If it exists we should move that item into this
                   // position and send this block to the bottom to be reused.
-                  for(var k = i; k < buffer.size; k++) {
-                    if (found) {
+                  for(var k = p; k < buffer.size; k++) {
+                    if (buffer.elements[k] && found) {
                       // Update positions of everything else in the buffer
                       buffer.elements[k].scope.$coords = { x:x, y:y }
                     }
@@ -438,7 +424,6 @@
                       //$animate.move(buffer.elements[p].clone, wrapper.el);
                       //repositionElement(buffer.elements[p]);
                       //repositionElement(buffer.elements[k]);
-                      //console.log('Found element', buffer.elements[p].scope.$index);
                       found = true;
                       //break;
                     }
@@ -563,9 +548,9 @@
             if (buffer.top <= 0) {
               buffer.top = 0;
               buffer.bottom = buffer.rows;
-            } else if (buffer.bottom >= list.length) {
-              buffer.top = (wrapper.rows - buffer.rows);
-              buffer.bottom = wrapper.rows;
+            } else if (buffer.bottom >= list.length / columns) {
+              buffer.bottom = list.length / columns;
+              buffer.top = (buffer.bottom - buffer.size > 0) ? buffer.bottom - buffer.size : 0 ;
             }
 
             // Update the extra properties of the buffer
@@ -815,7 +800,6 @@
 
 
           function setupElement (element) {
-            //var el = getBlockElements(element.clone);
             var el = getItemElement(element.clone);
             el.css({
               'webkitTransform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
@@ -830,8 +814,8 @@
            * @param y
            */
           function repositionElement (element) {
-            var el = getBlockElements(element.clone);
-            angular.element(el[1]).css('-webkit-transform', 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)')
+            var el = getItemElement(element.clone);
+            el.css('-webkit-transform', 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)')
           }
 
           /**
