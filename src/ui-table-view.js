@@ -279,6 +279,7 @@
 
             if (attributes.viewParams) {
               scope.$watch(attributes.viewParams, function (view) {
+                id = view.listId || 1;
                 row.height = view.rowHeight || ROW_HEIGHT;
                 columns = view.columns || COLUMNS;
                 buffer.rows = view.rows || BUFFER_ROWS;
