@@ -288,6 +288,14 @@
               }, true);
             }
 
+            /**
+             * Expose resetPosition function to the controller scope
+             * TODO: should accept an id parameter to be able to reset the position for different lists
+             */
+            scope.resetPosition = function () {
+              resetPosition();
+            }
+
             // Setup trigger functions for the directive
             if (attributes.triggerTop) {
               triggerTop = function () {
@@ -900,15 +908,13 @@
           }
 
           function restorePosition() {
-            if ($window.localStorage.getItem('mlzUITableView.' + id + '.scroll')) {
-              scroll = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id + '.scroll'));
+            if ($window.localStorage.getItem('mlzUITableView.' + id)) {
+              var cache = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id));
+              scroll = cache.scroll;
+              view = cache.view;
+              buffer = cache.buffer;
             }
-            if ($window.localStorage.getItem('mlzUITableView.' + id + '.view')) {
-              view = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id + '.view'));
-            }
-            if ($window.localStorage.getItem('mlzUITableView.' + id + '.buffer')) {
-              buffer = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id + '.buffer'));
-            }
+
             console.log('Restoring', scroll.y);
             setupNextTick();
             //setScrollPosition(scroll.y);
@@ -916,9 +922,17 @@
           }
 
           function savePosition () {
-            $window.localStorage.setItem('mlzUITableView.' + id + '.scroll', JSON.stringify(scroll));
-            $window.localStorage.setItem('mlzUITableView.' + id + '.view', JSON.stringify(view));
-            $window.localStorage.setItem('mlzUITableView.' + id + '.buffer', JSON.stringify(buffer));
+            $window.localStorage.setItem('mlzUITableView.' + id, JSON.stringify({
+              scroll: scroll,
+              view: view,
+              buffer: buffer
+            }));
+          }
+
+          function resetPosition () {
+            if ($window.localStorage.getItem('mlzUITableView.' + id)) {
+              $window.localStorage.removeItem('mlzUITableView.' + id);
+            }
           }
 
           function cleanup () {
