@@ -12,7 +12,8 @@ describe('UITableView', function () {
 
   var numberOfItems = 1000,
     rowHeight = 100,
-    bufferSize = 10;
+    bufferSize = 10,
+    listId = 1337;
 
   var html =
     '<mlz-ui-table-view style="height:480px; width: 320px"'
@@ -44,7 +45,8 @@ describe('UITableView', function () {
       $scope.view = {
         rows: bufferSize,
         rowHeight: rowHeight,
-        columns: 1
+        columns: 1,
+        listId: listId
       };
 
       $scope.list = [];
@@ -108,6 +110,7 @@ describe('UITableView', function () {
 
   function cleanUp() {
     document.find('mlz-ui-table-view').empty();
+    localStorage.removeItem('mlzUITableView.' + listId);
     clock.restore();
   }
 
@@ -562,6 +565,17 @@ describe('UITableView', function () {
       expect(scope.items[9].id).to.equal(989);
       expect(scope.items[9].$$top).to.equal(98900);*/
 
+    });
+  });
+
+  describe('scroll position', function () {
+    beforeEach(function () {
+      initialiseWithListSet();
+      scrollToIndex(1);
+    });
+
+    it('should be saved in localstorage', function () {
+      expect(localStorage.getItem('mlzUITableView.1337')).toBeDefined();
     });
   });
 

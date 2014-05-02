@@ -95,19 +95,16 @@
             SCROLL_DOWN = 'down',
             TRIGGER_DISTANCE = 1;
 
-          var id = 1, list = [], items = [], itemName = 'item',
+          var id = 1, list = [], items = [], itemName = 'item', posObj = {},
 
-            model = {
-
-            },
-          // Model the main container for the view table
+            // Model the main container for the view table
             container = {
               height: 0,
               width: 0,
               el: undefined
             },
 
-          // Model the wrapper that will hold the buffer and be scrolled by the container
+            // Model the wrapper that will hold the buffer and be scrolled by the container
             wrapper = {
               height: 0,
               width: 0,
@@ -117,7 +114,7 @@
 
             elements,
 
-          // Model a row
+            // Model a row
             row = {
               height: ROW_HEIGHT,
               width: ROW_WIDTH
@@ -129,8 +126,8 @@
               distance: TRIGGER_DISTANCE
             },
 
-          // Information about the scroll status
-          // _ indicates the value of that item on the previous tick
+            // Information about the scroll status
+            // _ indicates the value of that item on the previous tick
             scroll = {
               // X-Axis
               x: 0, //TODO: Support x axis
@@ -164,16 +161,6 @@
               directionChange: false
             },
             _scroll, // Previous tick data
-
-            metadata = {
-              $$position: 0,
-              $$visible: true,
-              $$coords: {
-                x: 0,
-                y: 0
-              },
-              $$height: 0
-            },
 
             view = {
               top: 0,
@@ -279,12 +266,21 @@
 
             if (attributes.viewParams) {
               scope.$watch(attributes.viewParams, function (view) {
+                id = view.listId || 1;
                 row.height = view.rowHeight || ROW_HEIGHT;
                 columns = view.columns || COLUMNS;
                 buffer.rows = view.rows || BUFFER_ROWS;
                 buffer.size = buffer.rows * columns;
                 refresh();
               }, true);
+            }
+
+            /**
+             * Expose resetPosition function to the controller scope
+             * TODO: should accept an id parameter to be able to reset the position for different lists
+             */
+            scope.resetPosition = function () {
+              resetPosition();
             }
 
             // Setup trigger functions for the directive
@@ -399,7 +395,7 @@
 
                 // If we have an element cached and it contains the same info, leave it as it is.
                 if (elements[p] && angular.equals(list[e], elements[p].scope[itemName])) {
-                  elements[p].scope.$coords = { x:x, y:y }
+                  elements[p].scope.$coords = { x:x, y:y };
                   //$animate.move(elements[p].clone, wrapper.el);
                   repositionElement(elements[p]);
 
@@ -409,8 +405,8 @@
                 if (elements[p]) {
                   // Scan the buffer for this item. If it exists we should move that item into this
                   // position and send this block to the bottom to be reused.
-                  for(var k = i; k < buffer.size; k++) {
-                    if (found) {
+                  for(var k = p; k < buffer.size; k++) {
+                    if (elements[k] && found) {
                       // Update positions of everything else in the buffer
                       elements[k].scope.$coords = { x:x, y:y }
                     }
@@ -422,7 +418,7 @@
                       // and move them to the end.
                       //elements.join(elements.slice(p, k - p));
                       // Move the found element into the correct place in the buffer elements array
-                      move(buffer.elements, k, p);
+                      move(elements, k, p);
                       //$animate.move(buffer.elements[p].clone, wrapper.el);
                       //repositionElement(buffer.elements[p]);
                       //repositionElement(buffer.elements[k]);
@@ -568,7 +564,7 @@
           function isRenderRequired () {
             return(
               ((scroll.direction === SCROLL_UP && buffer.atEdge !== EDGE_TOP && view.deadZone === false) && (scroll.directionChange || view.ytChange)) ||
-                ((scroll.direction === SCROLL_DOWN && buffer.atEdge !== EDGE_BOTTOM && view.deadZone === false) && (scroll.directionChange || view.ytChange)) || !(view.deadZone !== false && view.deadZoneChange === false)
+              ((scroll.direction === SCROLL_DOWN && buffer.atEdge !== EDGE_BOTTOM && view.deadZone === false) && (scroll.directionChange || view.ytChange)) || !(view.deadZone !== false && view.deadZoneChange === false)
               );
           }
 
@@ -681,7 +677,7 @@
           /**
            * Perform the scrolling up action by updating the required elements
            * @param start
-           * @param end
+           * @param distance
            */
           function scrollingUp (start, distance) {
 
@@ -804,9 +800,14 @@
 
 
           function setupElement (element) {
-            var el = getItemElement(element.clone);
+            var el = getItemElement(element.clone),
+              transFunc = 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)';
+
             el.css({
-              'webkitTransform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
+              '-webkit-transform': transFunc,
+              '-moz-transform': transFunc,
+              '-ms-transform': transFunc,
+              transform: transFunc,
               position: 'absolute',
               height: element.scope.$height + 'px'
             });
@@ -818,8 +819,15 @@
            * @param y
            */
           function repositionElement (element) {
-            var el = getItemElement(element.clone);
-            el.css('-webkit-transform', 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)')
+            var el = getItemElement(element.clone),
+              transFunc = 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)';
+
+            el.css({
+              '-webkit-transform': transFunc,
+              '-moz-transform': transFunc,
+              '-ms-transform': transFunc,
+              'transform': transFunc
+            });
           }
 
           /**
@@ -898,26 +906,42 @@
             }
           }
 
-          function restorePosition() {
-            if ($window.localStorage.getItem('mlzUITableView.' + id + '.scroll')) {
-              scroll = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id + '.scroll'));
+          /**
+           * Check localstorage for a valid scroll-position to restore
+           */
+          function restorePosition () {
+            var posItem = $window.localStorage.getItem('mlzUITableView.' + id);
+
+            if (posItem) {
+              //TODO: Leaving the view without scrolling saves an empty object which should never be saved
+              if (posItem !== '{}') {
+                posObj = JSON.parse(posItem);
+                scroll = posObj.scroll;
+                view = posObj.view;
+                buffer = posObj.buffer;
+              }
+
+              resetPosition();
             }
-            if ($window.localStorage.getItem('mlzUITableView.' + id + '.view')) {
-              view = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id + '.view'));
-            }
-            if ($window.localStorage.getItem('mlzUITableView.' + id + '.buffer')) {
-              buffer = JSON.parse($window.localStorage.getItem('mlzUITableView.' + id + '.buffer'));
-            }
-            console.log('Restoring', scroll.y);
+
             setupNextTick();
-            //setScrollPosition(scroll.y);
+
+            setScrollPosition(scroll.y);
             container.el.prop('scrollTop', scroll.y);
           }
 
           function savePosition () {
-            $window.localStorage.setItem('mlzUITableView.' + id + '.scroll', JSON.stringify(scroll));
-            $window.localStorage.setItem('mlzUITableView.' + id + '.view', JSON.stringify(view));
-            $window.localStorage.setItem('mlzUITableView.' + id + '.buffer', JSON.stringify(buffer));
+            posObj = {
+              scroll: scroll,
+              view: view,
+              buffer: buffer
+            };
+          }
+
+          function resetPosition () {
+            if ($window.localStorage.getItem('mlzUITableView.' + id)) {
+              $window.localStorage.removeItem('mlzUITableView.' + id);
+            }
           }
 
           function cleanup () {
@@ -932,6 +956,7 @@
           }
 
           scope.$on('$destroy', function () {
+            $window.localStorage.setItem('mlzUITableView.' + id, JSON.stringify(posObj));
             cleanup();
           });
         }
