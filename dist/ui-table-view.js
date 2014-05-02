@@ -408,8 +408,8 @@
                 if (buffer.elements[p]) {
                   // Scan the buffer for this item. If it exists we should move that item into this
                   // position and send this block to the bottom to be reused.
-                  for(var k = i; k < buffer.size; k++) {
-                    if (found) {
+                  for(var k = p; k < buffer.size; k++) {
+                    if (buffer.elements[k] && found) {
                       // Update positions of everything else in the buffer
                       buffer.elements[k].scope.$coords = { x:x, y:y }
                     }
@@ -804,7 +804,10 @@
           function setupElement (element) {
             var el = getItemElement(element.clone);
             el.css({
-              'webkitTransform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
+              '-webkit-transform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
+              '-moz-transform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
+              '-ms-transform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
+              transform: 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
               position: 'absolute',
               height: element.scope.$height + 'px'
             });
@@ -817,7 +820,12 @@
            */
           function repositionElement (element) {
             var el = getItemElement(element.clone);
-            el.css('-webkit-transform', 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)')
+            el.css({
+              '-webkit-transform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
+              '-moz-transform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
+              '-ms-transform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)',
+              'transform': 'translate3d(' + element.scope.$coords.x + 'px, ' + element.scope.$coords.y + 'px, 0px)'
+            });
           }
 
           /**
