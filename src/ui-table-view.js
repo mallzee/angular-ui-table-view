@@ -903,7 +903,7 @@
           }
 
           function cleanup () {
-            $window.removeEventListener('statusTap');
+            $window.removeEventListener('statusTap', scrollToTop);
             container.el.off('scroll');
             clearElements();
             wrapper.el.remove();
