@@ -381,7 +381,7 @@
               if (items && i >= items.length) {
                 // TODO: Refactor this as it's a bit pish
                 if (buffer.elements[i]) {
-                  destroyItem(i);
+                  destroyItem(i--);//have to offset index back as we delete items
                 }
               } else {
 
@@ -407,7 +407,7 @@
                 if (buffer.elements[p]) {
                   // Scan the buffer for this item. If it exists we should move that item into this
                   // position and send this block to the bottom to be reused.
-                  for(var k = p; k < buffer.size; k++) {
+                  for(var k = p; k < buffer.elements.length; k++) {
                     if (buffer.elements[k] && found) {
                       // Update positions of everything else in the buffer
                       buffer.elements[k].scope.$coords = { x:x, y:y }
