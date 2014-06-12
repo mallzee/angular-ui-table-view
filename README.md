@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/mallzee/angular-ui-table-view.png?label=ready&title=Ready)](https://waffle.io/mallzee/angular-ui-table-view)
 
 [ ![Codeship Status for mallzee/angular-ui-table-view](https://www.codeship.io/projects/6e488550-7091-0131-b629-6a793a0a9a66/status?branch=master)](https://www.codeship.io/projects/13414)
 
